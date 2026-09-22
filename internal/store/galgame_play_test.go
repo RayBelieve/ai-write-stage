@@ -215,3 +215,20 @@ func TestDisplayBoundImageDoesNotFallBackPastUnstartedNew(t *testing.T) {
 		t.Fatalf("previous keep = %q", got)
 	}
 }
+
+func TestNormalizePlayImageFrequency(t *testing.T) {
+	cases := map[string]PlayImageFrequency{
+		"":         PlayImageFreqSparse,
+		"sparse":   PlayImageFreqSparse,
+		"standard": PlayImageFreqStandard,
+		"dense":    PlayImageFreqDense,
+		" 标准 ":     PlayImageFreqStandard,
+		"密集":       PlayImageFreqDense,
+		"whatever": PlayImageFreqSparse,
+	}
+	for raw, want := range cases {
+		if got := NormalizePlayImageFrequency(raw); got != want {
+			t.Errorf("NormalizePlayImageFrequency(%q) = %q, want %q", raw, got, want)
+		}
+	}
+}

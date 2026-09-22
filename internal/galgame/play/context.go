@@ -78,13 +78,14 @@ type replanTurn struct {
 }
 
 type plannerTurn struct {
-	Density        store.PlayDensity `json:"density"`
-	Pacing         store.PlayPacing  `json:"pacing"`
-	Location       string            `json:"location,omitempty"`
-	CurrentStation store.PlayStation `json:"current_station"`
-	Facts          []store.PlayFact  `json:"facts"`
-	LastStation    bool              `json:"last_station"`
-	Architect      ArchitectOutput   `json:"architect"`
+	Density        store.PlayDensity        `json:"density"`
+	Pacing         store.PlayPacing         `json:"pacing"`
+	ImageFrequency store.PlayImageFrequency `json:"image_frequency,omitempty"`
+	Location       string                   `json:"location,omitempty"`
+	CurrentStation store.PlayStation        `json:"current_station"`
+	Facts          []store.PlayFact         `json:"facts"`
+	LastStation    bool                     `json:"last_station"`
+	Architect      ArchitectOutput          `json:"architect"`
 }
 
 func slimCharacter(character store.GalgameCharacter) PromptCharacter {
@@ -127,6 +128,20 @@ func attachStaticContext(prompt string, static any) (string, error) {
 
 func withPlayHints(prompt string, density store.PlayDensity, pacing store.PlayPacing) string {
 	hint := strings.TrimSpace(profileFor(density, pacing).PromptHint)
+	prompt = strings.TrimSpace(prompt)
+	if hint == "" {
+		return prompt
+	}
+	if prompt == "" {
+		return hint
+	}
+	return prompt + "\n\n" + hint
+}
+
+// withImageFrequencyHint 把生图频率档位的换图纪律追加到 planner system 末尾；
+// 节俭档无追加内容，保持 play-planner.md 内置行为。
+func withImageFrequencyHint(prompt string, freq store.PlayImageFrequency) string {
+	hint := strings.TrimSpace(imageFrequencyHint(freq))
 	prompt = strings.TrimSpace(prompt)
 	if hint == "" {
 		return prompt
@@ -215,7 +230,7 @@ func architectRequest(prompt string, in ArchitectInput) (string, string, error) 
 }
 
 func plannerRequest(prompt string, in PlannerInput) (string, string, error) {
-	system, err := attachStaticContext(withPlayHints(prompt, in.Density, in.Pacing), sharedCard(in.Character, in.Premise, in.UserPersona))
+	system, err := attachStaticContext(withImageFrequencyHint(withPlayHints(prompt, in.Density, in.Pacing), in.ImageFrequency), sharedCard(in.Character, in.Premise, in.UserPersona))
 	if err != nil {
 		return "", "", err
 	}
@@ -226,6 +241,7 @@ func plannerRequest(prompt string, in PlannerInput) (string, string, error) {
 	payload, err := marshalTurn(plannerTurn{
 		Density:        store.NormalizePlayDensity(string(in.Density)),
 		Pacing:         store.NormalizePlayPacing(string(in.Pacing)),
+		ImageFrequency: store.NormalizePlayImageFrequency(string(in.ImageFrequency)),
 		Location:       strings.TrimSpace(in.Location),
 		CurrentStation: in.CurrentStation,
 		Facts:          facts,

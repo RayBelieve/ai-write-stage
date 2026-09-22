@@ -61,6 +61,7 @@
       setField('galgame-play-image-profile', play.image_profile_id || '');
       setField('galgame-play-density', play.density === 'rich' ? 'rich' : 'compact');
       setField('galgame-play-pacing', play.pacing === 'story' || play.pacing === 'pure' ? play.pacing : 'choice');
+      setField('galgame-play-image-frequency', ['standard', 'dense'].includes(play.image_frequency) ? play.image_frequency : 'sparse');
     }
     if (isPlayMode()) $('galgame-session-name').textContent = play?.name || '剧场';
     renderPlayBuffer();
@@ -96,7 +97,7 @@
   }
 
   function statusLabel(status) {
-    return ({ idle: '未开局', running: '写作中', awaiting_choice: '等待选项', paused: '已暂停', completed: '已完结' })[status] || status;
+    return ({ idle: '未开局', running: '写作中', awaiting_choice: '等待选项', paused: '已暂停', completed: '已完结', awaiting_replan: '待继续规划' })[status] || status;
   }
 
   function isLogOpen() { return $('galgame')?.classList.contains('is-log-open'); }
@@ -357,9 +358,16 @@
     clampViewOrdinal();
     const reviewing = isReviewing();
     if (!reviewing && waitingAfterChoice()) {
-      host.innerHTML = loadingHTML();
+      const status = playState.view?.play?.status || '';
+      if (status === 'completed') {
+        host.innerHTML = `<div class="galgame-loading"><p>剧场已完结（玩家选择了结局）。</p></div>`;
+      } else if (status === 'awaiting_replan') {
+        host.innerHTML = `<div class="galgame-loading"><p>预设剧情已走完，请在设置里写下新方向并点击「继续规划」。</p></div>`;
+      } else {
+        host.innerHTML = loadingHTML();
+      }
       delete host.dataset.playSig;
-      setPlayHint('正在续写…');
+      setPlayHint('');
       renderPlayImage(playState.view?.image);
       renderPlayNav();
       return;
@@ -373,6 +381,7 @@
       renderPlayNav();
       return;
     }
+    const playStatus = playState.view?.play?.status || '';
     const chosen = selectedChoice(beat);
     const liveChoice = !reviewing;
     const speaker = beat.speaker || (beat.kind === 'narration' ? '' : (character()?.name || ''));
@@ -385,6 +394,8 @@
       : '';
     let hint = '单击继续';
     if (reviewing) hint = `回看 ${displayHead()} / ${liveHead()}`;
+    else if (playStatus === 'completed') hint = '剧场已完结（玩家选择了结局）';
+    else if (playStatus === 'awaiting_replan') hint = '预设剧情已走完，请在设置里继续规划新方向';
     else if (beat.kind === 'choice' && !chosen) hint = '请选择';
     else if (liveHead() >= (playState.view?.progress?.write_head || 0)) hint = '正在续写…';
     setPlayHint(hint);
@@ -501,6 +512,7 @@
     setField('galgame-play-image-profile', '');
     setField('galgame-play-density', 'compact');
     setField('galgame-play-pacing', 'choice');
+    setField('galgame-play-image-frequency', 'sparse');
     const select = $('galgame-play-select');
     if (select) select.value = '';
     renderPlayForm();
@@ -543,6 +555,7 @@
         premise,
         density: fieldValue('galgame-play-density') || 'compact',
         pacing: fieldValue('galgame-play-pacing') || 'choice',
+        image_frequency: fieldValue('galgame-play-image-frequency') || 'sparse',
         user_persona: fieldValue('galgame-play-persona'),
         image_profile_id: fieldValue('galgame-play-image-profile'),
       }) });
@@ -567,6 +580,7 @@
         premise: fieldValue('galgame-play-premise'),
         density: fieldValue('galgame-play-density') || 'compact',
         pacing: fieldValue('galgame-play-pacing') || 'choice',
+        image_frequency: fieldValue('galgame-play-image-frequency') || 'sparse',
         user_persona: fieldValue('galgame-play-persona'),
         image_profile_id: fieldValue('galgame-play-image-profile'),
       }) });
@@ -624,7 +638,7 @@
       playState.beats = [];
       followLive();
       await refreshPlayView();
-      notify('后续细纲已按方向改写', 'galgame-settings-msg', 'success');
+      notify('新篇章已规划，剧场继续写作中', 'galgame-settings-msg', 'success');
     } catch (error) {
       notify(error.message, 'galgame-settings-msg', 'error');
     } finally {

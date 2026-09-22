@@ -78,6 +78,7 @@ type PlannerInput struct {
 	Location       string
 	Density        store.PlayDensity
 	Pacing         store.PlayPacing
+	ImageFrequency store.PlayImageFrequency
 	CurrentStation store.PlayStation
 	Facts          []store.PlayFact
 	LastStation    bool
@@ -88,6 +89,7 @@ type WriterInput struct {
 	Character   store.GalgameCharacter
 	Premise     string
 	UserPersona string
+	SegmentID   string
 }
 
 type Generator struct {
@@ -102,6 +104,7 @@ type Generator struct {
 	ReplanPrompt      string
 	Density           store.PlayDensity
 	Pacing            store.PlayPacing
+	ImageFrequency    store.PlayImageFrequency
 	ArchitectThinking agentcore.ThinkingLevel
 	PlannerThinking   agentcore.ThinkingLevel
 	WriterThinking    agentcore.ThinkingLevel
@@ -196,6 +199,13 @@ func (g Generator) Writer(ctx context.Context, in WriterInput) (WriterOutput, er
 	session, err := g.loadWriterSession()
 	if err != nil {
 		return WriterOutput{}, err
+	}
+	// 换段即重置：旧段的 writer 对话不再追加，保证段内请求前缀稳定
+	// （命中 deepseek 自动前缀缓存），段内拍数上限受 capWriterTurns 保护。
+	if seg := strings.TrimSpace(in.SegmentID); seg != "" && session.SegmentID != seg {
+		session = store.PlayWriterSession{SegmentID: seg}
+	} else if seg != "" && session.SegmentID == "" {
+		session.SegmentID = seg
 	}
 	compacted := compactWriterTurns(session.Turns, system, payload, g.ContextWindow)
 	compacted = capWriterTurns(compacted, profileFor(g.Density, g.Pacing).WriterTurns)

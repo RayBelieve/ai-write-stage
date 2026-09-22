@@ -128,6 +128,9 @@ func (h *Host) UpdatePlay(id string, update storepkg.PlayMeta) (storepkg.PlayMet
 	if update.Pacing != "" {
 		meta.Pacing = storepkg.NormalizePlayPacing(string(update.Pacing))
 	}
+	if update.ImageFrequency != "" {
+		meta.ImageFrequency = storepkg.NormalizePlayImageFrequency(string(update.ImageFrequency))
+	}
 	if err := h.roots.Tavern.SavePlay(meta); err != nil {
 		return storepkg.PlayMeta{}, err
 	}
@@ -240,6 +243,16 @@ func (h *Host) StartPlay(id string) error {
 	id = strings.TrimSpace(id)
 	if id == "" {
 		return fmt.Errorf("play id is required")
+	}
+	if h.roots != nil && h.roots.Tavern != nil {
+		if meta, err := h.roots.Tavern.LoadPlay(id); err == nil {
+			switch meta.Status {
+			case storepkg.PlayCompleted:
+				return fmt.Errorf("剧场已完结（玩家选择了结局），不能再启动写作")
+			case storepkg.PlayAwaitingReplan:
+				return fmt.Errorf("预设剧情已走完，请先继续规划注入新方向")
+			}
+		}
 	}
 	if err := h.playActiveErrorExcept(id); err != nil {
 		return err
@@ -358,9 +371,11 @@ func (h *Host) newPlayEngine(id string) *play.Engine {
 	writerWindow, _ := h.models.ResolveContextWindow(writerProvider, writerModel)
 	density := storepkg.PlayDensityCompact
 	pacing := storepkg.PlayPacingChoice
+	imageFrequency := storepkg.PlayImageFreqSparse
 	if meta, err := h.roots.Tavern.LoadPlay(id); err == nil {
 		density = storepkg.NormalizePlayDensity(string(meta.Density))
 		pacing = storepkg.NormalizePlayPacing(string(meta.Pacing))
+		imageFrequency = storepkg.NormalizePlayImageFrequency(string(meta.ImageFrequency))
 	}
 	gen := play.Generator{
 		ArchitectModel:    newUsageTrackedModel(h.models.ForRole("architect"), "galplay", record),
@@ -374,6 +389,7 @@ func (h *Host) newPlayEngine(id string) *play.Engine {
 		ReplanPrompt:      h.bundle.Prompts.PlayReplan,
 		Density:           density,
 		Pacing:            pacing,
+		ImageFrequency:    imageFrequency,
 		ArchitectThinking: archThink,
 		PlannerThinking:   planThink,
 		WriterThinking:    writeThink,
@@ -416,17 +432,16 @@ func (h *Host) ReplanPlay(id, instruction string) error {
 		engine := h.newPlayEngine(id)
 		return engine.Replan(context.Background(), instruction)
 	}()
-	if wasLive {
-		restartErr := h.StartPlay(id)
-		if replanErr != nil {
-			if restartErr != nil {
-				return fmt.Errorf("剧场改纲失败: %v; 恢复运行失败: %w", replanErr, restartErr)
+	if replanErr != nil {
+		if wasLive {
+			if restartErr := h.StartPlay(id); restartErr != nil {
+				return fmt.Errorf("继续规划失败: %v; 恢复运行失败: %w", replanErr, restartErr)
 			}
-			return replanErr
 		}
-		return restartErr
+		return replanErr
 	}
-	return replanErr
+	// 继续规划成功：无论引擎此前是否在跑，都自动切入继续模式。
+	return h.StartPlay(id)
 }
 
 func (h *Host) startPlayImage(_ context.Context, playID string, beat *storepkg.PlayBeat) error {

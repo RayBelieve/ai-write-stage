@@ -146,11 +146,12 @@
           <label>局名<input id="galgame-play-name" placeholder="剧场局名称"></label>
           <label>剧场模式<select id="galgame-play-density"><option value="compact">精简（适合小模型）</option><option value="rich">丰满（适合大模型）</option></select></label>
           <label>剧场节奏<select id="galgame-play-pacing"><option value="choice">选择多（3–6 拍出选项）</option><option value="story">剧情多（10–15 拍出选项）</option><option value="pure">纯剧情（不出选项）</option></select></label>
+          <label>生图频率<select id="galgame-play-image-frequency"><option value="sparse">节俭（仅场景切换）</option><option value="standard">标准（含情绪转折）</option><option value="dense">密集（每 2–3 拍一张）</option></select></label>
           <label class="wide">用户身份<textarea id="galgame-play-persona" rows="2" placeholder="你在这部剧里的名字或身份"></textarea></label>
           <label class="wide">剧情预设<textarea id="galgame-play-premise" rows="6" placeholder="输入剧情方向。其他角色可以直接写在预设里。"></textarea></label>
-          <label class="wide">重新规划方向<textarea id="galgame-replan-instruction" rows="3" placeholder="写下后续走向。已演内容和已选事实不会改。"></textarea></label>
+          <label class="wide">继续剧情<textarea id="galgame-replan-instruction" rows="3" placeholder="预设剧情走完后，在这里写下新方向。已演内容和已选事实不会改。"></textarea></label>
           <div class="button-row"><button id="galgame-new-play" type="button">新建剧场</button><button id="galgame-save-play" type="button">保存设置</button></div>
-          <div class="button-row"><button id="galgame-start-play" type="button">开始写作</button><button id="galgame-pause-play" type="button">暂停</button><button id="galgame-replan-play" type="button">重新规划</button></div>
+          <div class="button-row"><button id="galgame-start-play" type="button">开始写作</button><button id="galgame-pause-play" type="button">暂停</button><button id="galgame-replan-play" type="button">继续规划</button></div>
         </div>
       </div>
     </aside>

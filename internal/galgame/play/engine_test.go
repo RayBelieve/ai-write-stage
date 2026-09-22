@@ -366,7 +366,8 @@ func TestEnginePurePacingWritesThroughStations(t *testing.T) {
 	runEngine(t, engine)
 	if err := waitUntil(context.Background(), func() bool {
 		meta, _ := tavern.LoadPlay(playID)
-		return meta.Status == store.PlayCompleted
+		// 预设剧情（spine 站）自然耗尽后进入待继续规划，而非完结。
+		return meta.Status == store.PlayAwaitingReplan
 	}); err != nil {
 		t.Fatal(err)
 	}

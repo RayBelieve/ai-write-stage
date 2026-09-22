@@ -160,3 +160,60 @@ func TestPlayCacheKey(t *testing.T) {
 		t.Fatal("empty play id should omit key")
 	}
 }
+
+func TestPlannerRequestImageFrequencyHint(t *testing.T) {
+	base := PlannerInput{
+		Architect: ArchitectOutput{SegmentID: "meet", Goal: "重逢"},
+		Character: testCharacter(), Premise: "雨夜", Location: "码头",
+	}
+
+	sparseSys, sparseUser, err := plannerRequest("分镜", base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(sparseSys, "生图频率") {
+		t.Fatalf("sparse should keep built-in discipline, got: %s", sparseSys)
+	}
+	if !strings.Contains(sparseUser, `"image_frequency":"sparse"`) {
+		t.Fatalf("sparse payload should carry explicit default: %s", sparseUser)
+	}
+
+	standardSys, standardUser, err := plannerRequest("分镜", func() PlannerInput {
+		in := base
+		in.ImageFrequency = store.PlayImageFreqStandard
+		return in
+	}())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(standardSys, "生图频率是标准") {
+		t.Fatalf("standard hint missing: %s", standardSys)
+	}
+	if !strings.Contains(standardUser, `"image_frequency":"standard"`) {
+		t.Fatalf("standard payload missing: %s", standardUser)
+	}
+
+	denseSys, _, err := plannerRequest("分镜", func() PlannerInput {
+		in := base
+		in.ImageFrequency = "密集"
+		return in
+	}())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(denseSys, "生图频率是密集") || !strings.Contains(denseSys, "每 2～3 拍一张") {
+		t.Fatalf("dense hint missing: %s", denseSys)
+	}
+
+	invalidSys, _, err := plannerRequest("分镜", func() PlannerInput {
+		in := base
+		in.ImageFrequency = "whatever"
+		return in
+	}())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(invalidSys, "生图频率") {
+		t.Fatalf("invalid frequency should fall back to sparse: %s", invalidSys)
+	}
+}

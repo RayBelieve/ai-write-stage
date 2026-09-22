@@ -46,6 +46,19 @@ func pacingRange(pacing store.PlayPacing) (minCards, maxCards int, hint string) 
 	}
 }
 
+// imageFrequencyHint 返回生图频率档位的换图纪律提示；节俭档返回空，
+// 保持 play-planner.md 内置的最保守行为。
+func imageFrequencyHint(freq store.PlayImageFrequency) string {
+	switch store.NormalizePlayImageFrequency(string(freq)) {
+	case store.PlayImageFreqDense:
+		return "本局生图频率是密集：多数拍都应有画面。除场景/时间/人物状态切换外，情绪转折、重要反应、动作定格、气氛变化都应 cg=new，平均每 2～3 拍一张；同一画面连续超过 3 拍时应考虑换图并写清 cg_intent 的变化。"
+	case store.PlayImageFreqStandard:
+		return "本局生图频率是标准：除场景/时间/人物状态切换外，每段第一拍和情绪转折点（对峙升级、关系变化、发现真相、决定行动）也应 cg=new，预计每段 2～4 张。"
+	default:
+		return ""
+	}
+}
+
 func joinHints(parts ...string) string {
 	out := make([]string, 0, len(parts))
 	for _, part := range parts {

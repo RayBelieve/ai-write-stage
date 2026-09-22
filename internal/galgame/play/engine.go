@@ -133,7 +133,7 @@ func (e *Engine) Run(ctx context.Context) error {
 			if done, err := e.spineExhausted(); err != nil {
 				return e.fail(err)
 			} else if done && progress.WriteHead > 0 {
-				return e.complete()
+				return e.awaitReplan()
 			}
 			if err := e.planNextSegment(ctx, progress); err != nil {
 				return e.fail(err)
@@ -170,7 +170,7 @@ func (e *Engine) markStarted() error {
 
 func (e *Engine) persistPaused() {
 	meta, err := e.store.LoadPlay(e.playID)
-	if err != nil || meta.Status == store.PlayCompleted {
+	if err != nil || meta.Status == store.PlayCompleted || meta.Status == store.PlayAwaitingReplan {
 		return
 	}
 	if meta.Status == store.PlayPaused {
@@ -206,6 +206,24 @@ func (e *Engine) complete() error {
 		return err
 	}
 	e.note("剧场完成")
+	return nil
+}
+
+// awaitReplan 在 spine 站自然耗尽（预设剧情走完）时进入待继续规划状态，
+// 引擎随之退出，等待用户注入新方向后由 host 重新拉起。玩家选 ending 的
+// 主动结局仍走 complete()。
+func (e *Engine) awaitReplan() error {
+	meta, err := e.store.LoadPlay(e.playID)
+	if err != nil {
+		return err
+	}
+	meta.Status = store.PlayAwaitingReplan
+	meta.LastError = ""
+	meta.Stage = ""
+	if err := e.store.SavePlay(meta); err != nil {
+		return err
+	}
+	e.note("预设剧情已走完，等待继续规划")
 	return nil
 }
 
@@ -337,7 +355,8 @@ func (e *Engine) planNextSegmentOnce(ctx context.Context, progress store.PlayPro
 	}
 	plan, err := e.planner(ctx, PlannerInput{
 		Architect: arch, Character: character, Premise: meta.Premise, UserPersona: meta.UserPersona,
-		Location: location, Density: meta.Density, Pacing: meta.Pacing, CurrentStation: station, Facts: ledger.Facts, LastStation: lastStation,
+		Location: location, Density: meta.Density, Pacing: meta.Pacing, ImageFrequency: meta.ImageFrequency,
+		CurrentStation: station, Facts: ledger.Facts, LastStation: lastStation,
 	})
 	if err != nil {
 		return err
@@ -400,6 +419,7 @@ func (e *Engine) writeNextBeat(ctx context.Context, progress store.PlayProgress,
 	}
 	written, err := e.writer(ctx, WriterInput{
 		Card: card, Character: character, Premise: meta.Premise, UserPersona: meta.UserPersona,
+		SegmentID: outline.SegmentID,
 	})
 	if err != nil {
 		return err
@@ -472,7 +492,7 @@ func (e *Engine) writeNextBeat(ctx context.Context, progress store.PlayProgress,
 		if done, err := e.spineExhausted(); err != nil {
 			return err
 		} else if done {
-			return e.complete()
+			return e.awaitReplan()
 		}
 	}
 	return nil
@@ -617,7 +637,13 @@ func (e *Engine) commitChoice(choiceID string) (store.PlayProgress, store.PlayCh
 		return progress, selected, err
 	}
 	if meta.Status == store.PlayAwaitingChoice {
-		meta.Status = store.PlayRunning
+		if selected.Ending {
+			// 玩家主动选择收束全剧：直接落完结态，循环下一轮检测到
+			// completed 即退出，不再进入「待继续规划」。
+			meta.Status = store.PlayCompleted
+		} else {
+			meta.Status = store.PlayRunning
+		}
 		meta.LastError = ""
 		if err := e.store.SavePlay(meta); err != nil {
 			return progress, selected, err
@@ -726,8 +752,18 @@ func (e *Engine) Replan(ctx context.Context, instruction string) error {
 	}
 	awaitingChoice := progress.GateOrdinal != 0
 	from := replanFromIndex(spine, awaitingChoice)
-	if from < 0 || from >= len(spine.Stations) {
+	// 追加模式：spine 全部演完（自然耗尽）时没有可改写的站，改为在既有
+	// 站之后追加新篇章；若站数已满，从头挤掉最早的已完成站腾位（已演
+	// 剧情保存在 beats/facts 中，不受影响）。
+	appendMode := from < 0
+	if appendMode {
+		from = len(spine.Stations)
+	}
+	if from < 0 || from > len(spine.Stations) {
 		return fmt.Errorf("没有可改的后续站")
+	}
+	if appendMode && from == 0 {
+		return fmt.Errorf("spine 为空，请先开始写作生成大纲")
 	}
 	ledger, err := e.store.LoadLedger(e.playID)
 	if err != nil {
@@ -744,8 +780,15 @@ func (e *Engine) Replan(ctx context.Context, instruction string) error {
 	kept := append([]store.PlayStation{}, spine.Stations[:from]...)
 	remaining := append([]store.PlayStation{}, spine.Stations[from:]...)
 	profile := profileFor(meta.Density, meta.Pacing)
+	anchor := "新站"
+	switch {
+	case len(remaining) > 0:
+		anchor = remaining[0].ID
+	case from > 0:
+		anchor = spine.Stations[from-1].ID + " 之后"
+	}
 	e.setStage(StagePlanning)
-	e.note(fmt.Sprintf("开始按方向改后续细纲 from=%s instruction=%s", remaining[0].ID, instruction))
+	e.note(fmt.Sprintf("开始按方向改后续细纲 from=%s instruction=%s", anchor, instruction))
 	out, err := e.replan(ctx, ReplanInput{
 		Character: character, Premise: meta.Premise, UserPersona: meta.UserPersona, Density: meta.Density, Pacing: meta.Pacing,
 		Instruction: instruction, Throughline: spine.Throughline, KeptStations: kept, RemainingStations: remaining,
@@ -759,6 +802,11 @@ func (e *Engine) Replan(ctx context.Context, instruction string) error {
 	if len(prepared.Stations) == 0 {
 		e.setStage("")
 		return fmt.Errorf("replan returned no stations")
+	}
+	if appendMode {
+		for len(kept) > 0 && len(kept)+len(prepared.Stations) > maxSpineStations {
+			kept = kept[1:]
+		}
 	}
 	if len(kept)+len(prepared.Stations) > maxSpineStations {
 		e.setStage("")
@@ -825,7 +873,7 @@ func (e *Engine) Replan(ctx context.Context, instruction string) error {
 		e.setStage("")
 		return err
 	}
-	if meta.Status == store.PlayCompleted {
+	if meta.Status == store.PlayCompleted || meta.Status == store.PlayAwaitingReplan {
 		meta.Status = store.PlayPaused
 	}
 	meta.LastError = ""

@@ -248,6 +248,45 @@ func TestGeneratorWriterAppendsSessionHistory(t *testing.T) {
 	}
 }
 
+func TestGeneratorWriterResetsSessionOnSegmentChange(t *testing.T) {
+	dir := t.TempDir()
+	tavern := store.Open(dir, dir).Tavern
+	model := &playCaptureModel{body: `{"speaker":"林晚","text":"在。"}`}
+	gen := Generator{WriterModel: model, WriterPrompt: "写", PlayID: "rain", Store: tavern}
+	segA := WriterInput{
+		Card:      store.PlayBeatCard{Kind: store.BeatDialogue, Speaker: "林晚", Location: "码头"},
+		Character: store.GalgameCharacter{Name: "林晚", Description: "情报员"},
+		Premise:   "雨夜", SegmentID: "seg_a",
+	}
+	if _, err := gen.Writer(context.Background(), segA); err != nil {
+		t.Fatal(err)
+	}
+	second := segA
+	second.Card.Location = "仓库"
+	if _, err := gen.Writer(context.Background(), second); err != nil {
+		t.Fatal(err)
+	}
+	if len(model.messages) != 4 {
+		t.Fatalf("same-segment calls should append history, got %#v", model.messages)
+	}
+	segB := segA
+	segB.SegmentID = "seg_b"
+	segB.Card.Location = "天台"
+	if _, err := gen.Writer(context.Background(), segB); err != nil {
+		t.Fatal(err)
+	}
+	if len(model.messages) != 2 {
+		t.Fatalf("segment change should reset history, got %#v", model.messages)
+	}
+	session, err := tavern.LoadWriterSession("rain")
+	if err != nil || session.SegmentID != "seg_b" || len(session.Turns) != 1 {
+		t.Fatalf("session after reset = %+v %v", session, err)
+	}
+	if session.Turns[0].Card.Location != "天台" {
+		t.Fatalf("session should only carry new-segment turn: %+v", session.Turns)
+	}
+}
+
 func TestGeneratorWriterCommitsCompactBeforeCall(t *testing.T) {
 	dir := t.TempDir()
 	tavern := store.Open(dir, dir).Tavern

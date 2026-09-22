@@ -18,6 +18,10 @@ const (
 	PlayAwaitingChoice PlayStatus = "awaiting_choice"
 	PlayPaused         PlayStatus = "paused"
 	PlayCompleted      PlayStatus = "completed"
+	// PlayAwaitingReplan 表示预设剧情（spine 站）已自然耗尽，等待用户
+	// 「继续规划」注入新方向后恢复写作。与 PlayCompleted（玩家选 ending
+	// 主动收束全剧）语义不同。
+	PlayAwaitingReplan PlayStatus = "awaiting_replan"
 )
 
 func (s PlayStatus) Active() bool {
@@ -72,6 +76,30 @@ func NormalizePlayPacing(raw string) PlayPacing {
 		return PlayPacingPure
 	default:
 		return PlayPacingChoice
+	}
+}
+
+// PlayImageFrequency 控制剧场分镜的换图（cg=new）倾向，只影响 planner 提示词的
+// 换图纪律，不改变卡片契约与校验。
+type PlayImageFrequency string
+
+const (
+	// PlayImageFreqSparse 节俭：仅场景/状态切换（历史默认行为）。
+	PlayImageFreqSparse PlayImageFrequency = "sparse"
+	// PlayImageFreqStandard 标准：场景切换 + 段首 + 情绪转折。
+	PlayImageFreqStandard PlayImageFrequency = "standard"
+	// PlayImageFreqDense 密集：每 2~3 拍至少一张，情绪高点必出图。
+	PlayImageFreqDense PlayImageFrequency = "dense"
+)
+
+func NormalizePlayImageFrequency(raw string) PlayImageFrequency {
+	switch strings.TrimSpace(strings.ToLower(raw)) {
+	case string(PlayImageFreqStandard), "标准":
+		return PlayImageFreqStandard
+	case string(PlayImageFreqDense), "密集":
+		return PlayImageFreqDense
+	default:
+		return PlayImageFreqSparse
 	}
 }
 
@@ -148,19 +176,20 @@ type PlayChoiceRecord struct {
 }
 
 type PlayMeta struct {
-	ID             string      `json:"id"`
-	Name           string      `json:"name"`
-	CharacterID    string      `json:"character_id"`
-	Premise        string      `json:"premise"`
-	UserPersona    string      `json:"user_persona,omitempty"`
-	ImageProfileID string      `json:"image_profile_id,omitempty"`
-	Density        PlayDensity `json:"density,omitempty"`
-	Pacing         PlayPacing  `json:"pacing,omitempty"`
-	Status         PlayStatus  `json:"status"`
-	LastError      string      `json:"last_error,omitempty"`
-	Stage          string      `json:"stage,omitempty"`
-	CreatedAt      time.Time   `json:"created_at"`
-	UpdatedAt      time.Time   `json:"updated_at"`
+	ID             string             `json:"id"`
+	Name           string             `json:"name"`
+	CharacterID    string             `json:"character_id"`
+	Premise        string             `json:"premise"`
+	UserPersona    string             `json:"user_persona,omitempty"`
+	ImageProfileID string             `json:"image_profile_id,omitempty"`
+	Density        PlayDensity        `json:"density,omitempty"`
+	Pacing         PlayPacing         `json:"pacing,omitempty"`
+	ImageFrequency PlayImageFrequency `json:"image_frequency,omitempty"`
+	Status         PlayStatus         `json:"status"`
+	LastError      string             `json:"last_error,omitempty"`
+	Stage          string             `json:"stage,omitempty"`
+	CreatedAt      time.Time          `json:"created_at"`
+	UpdatedAt      time.Time          `json:"updated_at"`
 }
 
 type PlayProgress struct {
@@ -214,7 +243,11 @@ type PlayWriterTurn struct {
 }
 
 type PlayWriterSession struct {
-	Turns []PlayWriterTurn `json:"turns"`
+	// SegmentID 标记当前会话归属的分镜段。writer 历史只在段内追加：
+	// 换段即重置，保证段内请求前缀稳定以命中 deepseek 自动前缀缓存，
+	// 同时避免跨段无关上下文干扰台词生成。
+	SegmentID string           `json:"segment_id,omitempty"`
+	Turns     []PlayWriterTurn `json:"turns"`
 }
 
 func (s *GalgameStore) NewPlayID(characterName, playName string, createdAt time.Time) string {
@@ -261,6 +294,7 @@ func (s *GalgameStore) SavePlay(meta PlayMeta) error {
 	}
 	meta.Density = NormalizePlayDensity(string(meta.Density))
 	meta.Pacing = NormalizePlayPacing(string(meta.Pacing))
+	meta.ImageFrequency = NormalizePlayImageFrequency(string(meta.ImageFrequency))
 	if meta.Status == "" {
 		meta.Status = PlayIdle
 	}
@@ -278,7 +312,7 @@ func (s *GalgameStore) SavePlay(meta PlayMeta) error {
 
 func validPlayStatus(status PlayStatus) bool {
 	switch status {
-	case PlayIdle, PlayRunning, PlayAwaitingChoice, PlayPaused, PlayCompleted:
+	case PlayIdle, PlayRunning, PlayAwaitingChoice, PlayPaused, PlayCompleted, PlayAwaitingReplan:
 		return true
 	default:
 		return false
