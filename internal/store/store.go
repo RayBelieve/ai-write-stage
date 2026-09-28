@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/Leixx98/ai-write-stage/internal/domain"
 	"github.com/Leixx98/ai-write-stage/internal/errs"
@@ -203,19 +204,129 @@ func (s *Store) FoundationMissing() ([]string, error) {
 			missing = append(missing, "compass")
 		}
 	}
-	// 新书只有经过模型对已落盘工件的显式语义审查，才允许从规划进入写作。
-	// PhaseWriting/Complete 代表旧书或已审查的新书，保持历史项目兼容；审查本身
-	// 是一个动作而非文件缺失，因此只在其它工件齐全时追加。
+	// 新书要过两道门才能从规划进入写作：模型的语义审查（audit ready）与用户的
+	// 显式确认（outline_confirmation）。审查/确认都是动作而非文件缺失，因此只在
+	// 其它工件齐全时追加。旧书（已在 writing/complete）不追溯设门，保持历史项目
+	// 兼容；确认失效由指纹判定——任何设定工件落盘都会使旧确认失效、audit 重审。
 	if len(missing) == 0 {
 		progress, err := s.Progress.Load()
 		if err != nil {
 			return nil, fmt.Errorf("load progress: %w", err)
 		}
-		if progress == nil || (progress.Phase != domain.PhaseWriting && progress.Phase != domain.PhaseComplete) {
+		if progress == nil {
 			missing = append(missing, "foundation_audit")
+		} else {
+			switch progress.Phase {
+			case domain.PhaseWriting, domain.PhaseComplete:
+				// 旧书 / 已过门：维持原语义，规划期门禁不再适用。
+			default:
+				audit, aerr := s.Outline.LoadFoundationAudit()
+				if aerr != nil {
+					return nil, fmt.Errorf("load foundation audit: %w", aerr)
+				}
+				ready := audit != nil && audit.Ready
+				if ready {
+					fp, ferr := s.FoundationFingerprint()
+					if ferr != nil {
+						return nil, fmt.Errorf("fingerprint foundation: %w", ferr)
+					}
+					ready = audit.Fingerprint == fp
+				}
+				if !ready {
+					missing = append(missing, "foundation_audit")
+				}
+			}
 		}
 	}
 	return missing, nil
+}
+
+// FoundationReview 是规划产物的用户确认门状态快照。规划完成（基础设定齐全且
+// 模型审查 ready）但尚无匹配当前指纹的用户确认时 Awaiting=true；Engine 在该
+// 状态下 Route=nil 自然停机，Web/Headless 消费此状态呈现"大纲确认页"。
+type FoundationReview struct {
+	Awaiting     bool // true = 规划产物已就绪，等待用户确认
+	Confirmed    bool // 存在与当前指纹匹配的显式确认
+	ConfirmedAt  time.Time
+	Fingerprint  string
+	AuditSummary string // 模型审查结论摘要（未就绪时为空）
+	Phase        string
+}
+
+// FoundationReview 读取用户确认门状态。两道门共用一套指纹判定：
+//   - 规划期（全书大纲门）：基础设定齐全且审查 ready 后等待首次确认；
+//   - 写作期（弧/卷边界门）：expand_arc / append_volume / revise_outline 等
+//     规划动作改写产物后指纹失配，继续写作前等待再次确认；从未确认过的
+//     旧书（无确认工件）不追溯设门，维持升级前的写作流。
+func (s *Store) FoundationReview() (*FoundationReview, error) {
+	progress, err := s.Progress.Load()
+	if err != nil {
+		return nil, fmt.Errorf("load progress: %w", err)
+	}
+	review := &FoundationReview{}
+	if progress == nil {
+		return review, nil
+	}
+	review.Phase = string(progress.Phase)
+	switch progress.Phase {
+	case domain.PhaseComplete:
+		return review, nil
+	}
+	missing, err := s.FoundationMissing()
+	if err != nil {
+		return nil, fmt.Errorf("load foundation state: %w", err)
+	}
+	if len(missing) > 0 {
+		return review, nil // 工件未齐或审查未就绪：还没到确认门
+	}
+	if audit, err := s.Outline.LoadFoundationAudit(); err == nil && audit != nil {
+		review.AuditSummary = audit.Summary
+	}
+	fp, err := s.FoundationFingerprint()
+	if err != nil {
+		return nil, fmt.Errorf("fingerprint foundation: %w", err)
+	}
+	review.Fingerprint = fp
+	conf, err := s.Outline.LoadOutlineConfirmation()
+	if err != nil {
+		return nil, fmt.Errorf("load outline confirmation: %w", err)
+	}
+	if conf != nil && conf.Fingerprint == fp {
+		review.Confirmed = true
+		review.ConfirmedAt = conf.ConfirmedAt
+	}
+	if progress.Phase == domain.PhaseWriting {
+		// 写作期只拦「确认过但规划又被改」的书；从未确认的旧书放行。
+		review.Awaiting = conf != nil && !review.Confirmed
+	} else {
+		// 规划期：新书必须过用户确认才能开写。
+		review.Awaiting = !review.Confirmed
+	}
+	return review, nil
+}
+
+// FoundationUnconfirmed 报告路由是否应停机等确认（确认门的单一真相源，
+// 与 FoundationReview 同口径）：写作期规划产物偏离最近一次用户确认。
+func (s *Store) FoundationUnconfirmed() (bool, error) {
+	review, err := s.FoundationReview()
+	if err != nil {
+		return false, err
+	}
+	return review.Awaiting, nil
+}
+
+// ConfirmOutline 落用户确认工件（绑定当前指纹）。Phase 推进与引擎重启由 Host 层
+// 负责，这里只做事实写入；重复确认幂等（覆盖写同一指纹）。
+func (s *Store) ConfirmOutline() (domain.OutlineConfirmation, error) {
+	fp, err := s.FoundationFingerprint()
+	if err != nil {
+		return domain.OutlineConfirmation{}, fmt.Errorf("fingerprint foundation: %w", err)
+	}
+	conf := domain.OutlineConfirmation{ConfirmedAt: time.Now(), Fingerprint: fp}
+	if err := s.Outline.SaveOutlineConfirmation(conf); err != nil {
+		return domain.OutlineConfirmation{}, fmt.Errorf("save outline confirmation: %w: %w", errs.ErrStoreWrite, err)
+	}
+	return conf, nil
 }
 
 // FoundationFingerprint 返回当前基础设定工件的内容指纹。Architect 必须把

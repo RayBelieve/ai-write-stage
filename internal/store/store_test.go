@@ -54,6 +54,33 @@ func TestImageGenerationConfigurationIsMachineGlobal(t *testing.T) {
 	}
 }
 
+func TestDefaultComfyUIInstanceUsesSavedConnectionURL(t *testing.T) {
+	t.Setenv("AINOVEL_HOME", t.TempDir())
+	store := Open(t.TempDir(), "").ComfyUI
+	instances, _, err := store.LoadInstances()
+	if err != nil || len(instances) != 1 || instances[0].BaseURL != "http://127.0.0.1:8188" {
+		t.Fatalf("default instances=%+v err=%v", instances, err)
+	}
+	config := comfyui.DefaultConfig()
+	config.BaseURL = "http://127.0.0.1:8288"
+	if err := store.SaveConfig(config); err != nil {
+		t.Fatal(err)
+	}
+	instances, _, err = store.LoadInstances()
+	if err != nil || len(instances) != 1 || instances[0].BaseURL != config.BaseURL {
+		t.Fatalf("saved connection instances=%+v err=%v", instances, err)
+	}
+	explicit := comfyui.DefaultInstance()
+	explicit.BaseURL = "http://127.0.0.1:8388"
+	if err := store.SaveInstances([]comfyui.Instance{explicit}, comfyui.DefaultInstanceSettings()); err != nil {
+		t.Fatal(err)
+	}
+	instances, _, err = store.LoadInstances()
+	if err != nil || len(instances) != 1 || instances[0].BaseURL != explicit.BaseURL {
+		t.Fatalf("explicit instances=%+v err=%v", instances, err)
+	}
+}
+
 func TestClearHandledSteerKeepsIntentWhenProgressReadFails(t *testing.T) {
 	dir := t.TempDir()
 	st := NewStore(dir)

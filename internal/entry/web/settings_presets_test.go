@@ -4,9 +4,15 @@ import "testing"
 
 func TestDefaultPromptValuesAreComplete(t *testing.T) {
 	values := defaultPromptValues()
-	for _, role := range []string{"architect", "chapter_planner", "writer", "editor", "prompter"} {
+	// v3 只暴露 3 个创作段；editor 已退役、协议段固化不入库。
+	for _, role := range []string{"architect", "chapter_planner", "writer"} {
 		if values[role] == "" {
-			t.Fatalf("default prompt %q is empty", role)
+			t.Fatalf("default creative prompt %q is empty", role)
+		}
+	}
+	for _, role := range []string{"editor", "prompter"} {
+		if _, ok := values[role]; ok {
+			t.Fatalf("retired role %q must not appear in v3 defaults", role)
 		}
 	}
 }

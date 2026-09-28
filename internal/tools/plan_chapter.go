@@ -51,7 +51,7 @@ func (t *PlanChapterTool) Schema() map[string]any {
 	budget := t.planningBudget()
 	unit := schema.Object(
 		schema.Property("id", schema.String("全章唯一的写作片段 ID，如 12-2-1")).Required(),
-		schema.Property("target_chars", schema.Int(fmt.Sprintf("本次正文生成目标字数，必须在 %d-%d 之间并按情节密度决定；低密度通常 200-400，高密度通常 800-1000", budget.MinUnitChars, budget.MaxUnitChars))).Required(),
+		schema.Property("target_chars", schema.Int(fmt.Sprintf("本次正文生成目标字数，必须在 %d-%d 之间并按情节密度决定；低密度承接通常 500-800，中等密度推进通常 800-1400，高密度冲突/转折通常 1400-2000", budget.MinUnitChars, budget.MaxUnitChars))).Required(),
 		schema.Property("required_beats", schema.Array("本片段必须写出的动作或信息，按因果顺序排列", schema.String(""))).Required(),
 		schema.Property("forbidden_moves", schema.Array("本片段不得提前发生的事件；无则为空数组", schema.String(""))).Required(),
 		schema.Property("end_anchor", schema.String("本次写到哪里停止；不是章末钩子")).Required(),
@@ -327,8 +327,8 @@ func validateWritingPlanWithBudget(plan domain.ChapterPlan, budget WriterPlannin
 		}
 		chapterUnitChars += sceneUnitChars
 	}
-	if unitCount > 10 {
-		return fmt.Errorf("writing units must contain at most 10 units, got %d: %w", unitCount, errs.ErrToolArgs)
+	if unitCount > 6 {
+		return fmt.Errorf("writing units must contain at most 6 units (usually 3-5 per chapter), got %d: %w", unitCount, errs.ErrToolArgs)
 	}
 	if !targetCharsClose(chapterUnitChars, plan.TargetChars, 300) {
 		return fmt.Errorf("chapter target_chars %d does not approximately match unit total %d: %w",

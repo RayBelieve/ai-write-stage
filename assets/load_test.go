@@ -8,8 +8,9 @@ import (
 )
 
 // TestBuildWriterPrompt_ByteIdenticalToPreSplit 是文风层验收标准 ①:
-// 不放任何覆盖文件时,组装产物与拆分前的 writer.md 管线逐字节一致。
-// golden 是拆分前 writer.md 的原始快照(testdata/writer-golden.md)。
+// 不放任何覆盖文件时,组装产物与 writer 协议模板的回填管线逐字节一致。
+// golden 是当前 writer 协议模板回填 voice 后的快照(testdata/writer-golden.md)，
+// 提示词模板拆分（协议/创作段）时已同步再生成；意外变更会在此暴露。
 func TestBuildWriterPrompt_ByteIdenticalToPreSplit(t *testing.T) {
 	golden, err := os.ReadFile("testdata/writer-golden.md")
 	if err != nil {

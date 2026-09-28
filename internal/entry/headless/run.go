@@ -19,6 +19,9 @@ type Options struct {
 	Prompt string
 	Stdout io.Writer
 	Stderr io.Writer
+	// AutoConfirm 为 true 时跳过大纲确认门：规划产物就绪后自动确认并继续写作。
+	// 为 false 时停在确认门并打印提示（大纲内容请到 Web 工作台查看/确认）。
+	AutoConfirm bool
 }
 
 // Run 以无界面模式运行会话内核，直接消费 Engine 事件与流式输出。
@@ -85,18 +88,51 @@ func Run(cfg bootstrap.Config, bundle assets.Bundle, opts Options) error {
 			return fmt.Errorf("headless 模式需要 --prompt，或输出目录 %q 下已有可恢复会话", eng.Dir())
 		}
 		fmt.Fprintf(stderr, "headless 恢复: %s (%s)\n", eng.Dir(), label)
-		return consume(eng, stdout, stderr, roundHasContent)
+		return runWithConfirmGate(eng, stdout, stderr, roundHasContent, opts.AutoConfirm)
 	}
 
-	return consume(eng, stdout, stderr, false)
+	return runWithConfirmGate(eng, stdout, stderr, false, opts.AutoConfirm)
 }
 
-func consume(eng *host.Host, stdout, stderr io.Writer, roundHasContent bool) error {
+// runWithConfirmGate 驱动事件消费循环，并在引擎每轮停机后处理大纲确认门：
+// 规划产物就绪且未确认时，AutoConfirm 自动确认续跑；否则打印提示正常退出。
+func runWithConfirmGate(eng *host.Host, stdout, stderr io.Writer, roundHasContent, autoConfirm bool) error {
+	for {
+		roundDone, err := consume(eng, stdout, stderr, roundHasContent)
+		if err != nil {
+			return err
+		}
+		if !roundDone {
+			return nil // Host 已关闭
+		}
+		review, err := eng.OutlineReviewStatus()
+		if err != nil {
+			return fmt.Errorf("读取大纲确认门状态失败: %w", err)
+		}
+		if review == nil || !review.Awaiting {
+			return nil
+		}
+		if !autoConfirm {
+			fmt.Fprintf(stderr, "\n[大纲待确认] 规划已完成，等待你确认后再开写。\n审查结论：%s\n"+
+				"查看并确认大纲请打开 Web 工作台；追加 --yes 可自动确认当前大纲直接开写。\n", review.AuditSummary)
+			return nil
+		}
+		fmt.Fprintf(stderr, "\n[大纲待确认] --yes 自动确认当前大纲，继续写作。\n")
+		if err := eng.ConfirmOutline(); err != nil {
+			return err
+		}
+		roundHasContent = false
+	}
+}
+
+// consume 消费事件与流式输出直到一轮引擎停机或 Host 关闭。
+// 返回 roundDone=true 表示引擎一轮正常结束（可继续处理确认门）；false 表示 Host 已关闭。
+func consume(eng *host.Host, stdout, stderr io.Writer, roundHasContent bool) (bool, error) {
 	for {
 		select {
 		case ev, ok := <-eng.Events():
 			if !ok {
-				return nil
+				return false, nil
 			}
 			writeEvent(stderr, ev)
 		case event, ok := <-eng.Stream():
@@ -106,13 +142,16 @@ func consume(eng *host.Host, stdout, stderr io.Writer, roundHasContent bool) err
 			var err error
 			roundHasContent, err = writeStreamEvent(stdout, event, roundHasContent)
 			if err != nil {
-				return err
+				return false, err
 			}
 		case _, ok := <-eng.Done():
 			if !ok {
-				return nil
+				return false, nil
 			}
-			return drainPending(eng, stdout, stderr, roundHasContent)
+			if err := drainPending(eng, stdout, stderr, roundHasContent); err != nil {
+				return false, err
+			}
+			return true, nil
 		}
 	}
 }

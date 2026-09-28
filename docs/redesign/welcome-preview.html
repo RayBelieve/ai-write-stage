@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<title>ainovel · 欢迎页改样式预览</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+  /* ——— 设计语言：优雅文学风 · 纸墨 ——— */
+  :root {
+    --bg: #fbf8f1;
+    --bg-soft: #f5efe3;
+    --paper: #ffffff;
+    --ink: #232429;
+    --ink-soft: #4a4a4a;
+    --ink-mute: #8a8a8a;
+    --line: rgba(0,0,0,.08);
+    --gold: #b99956;
+    --gold-soft: rgba(185,153,86,.13);
+    --gold-glow: rgba(185,153,153,.18);
+    --green: #3f7a5e;
+    --red: #b85c5c;
+    --radius: 16px;
+    --shadow: 0 1px 2px rgba(40, 20, 0, .05), 0 6px 22px rgba(60, 40, 0, .07);
+    --serif: "Songti SC", "STSong", "Source Han Serif SC", Georgia, serif;
+    --ui-sans: -apple-system, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --display: "Songti SC", "STSong", "Source Han Serif SC", Georgia, serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; min-height: 100vh;
+    background:
+      radial-gradient(1200px 700px at 50% -10%, #fdfbf6, #f5ecd8 70%) no-repeat fixed,
+      var(--bg);
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--ui-sans);
+    font-size: 14px;
+  }
+  body {
+    background-image:
+      linear-gradient(180deg, rgba(244, 235, 217, 0) 0%, rgba(244, 235, 217, .35) 100%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' opacity='.07'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='3'/></filter><rect width='100%20' height='100%2f?000' fill='#a97c4a'/><rect width='1' height='1' filter='url(%23p)' fill='none'/></svg>");
+  }
+
+  .stage { max-width: 1000px; margin: 56px auto; padding: 0 24px; }
+
+  /* — 顶栏品牌 — */
+  .brand {
+    display: flex; align-items: center; gap: 14px;
+    padding: 8px 16px; border-radius: 99px;
+    background: rgba(255,255,255,.6); backdrop-filter: blur(12px);
+  }
+  .brand-mark {
+    width: 26px; height: 26px; border-radius: 8px; background: #1f1d18;
+    color: #e4c77a; display: grid; place-items: center;
+    font-family: var(--display); font-size: 17px; font-weight: 700;
+  }
+  .brand-text { font-family: var(--display); font-size: 15px; letter-spacing: .2em; }
+
+  /* — Hero — */
+  .hero {
+    text-align: center;
+    padding: 36px 20px 28px;
+  }
+  .hero h1 {
+    font-family: var(--display); font-weight: 700; font-size: clamp(46px, 6vw, 72px);
+    line-height: 1.04; margin: 0;
+    background: linear-gradient(180deg, #7d5b22, #c8a05a);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero .sub {
+    color: var(--ink-soft); margin: 16px 0 0;
+    font-size: 15px; line-height: 1.7; max-width: 540px; margin-inline: auto;
+  }
+  .hero .accent-rule {
+    width: 36px; height: 1px; background: var(--gold); margin: 22px auto 22px;
+    position: relative;
+  }
+  .hero .accent-rule::after {
+    content: ""; position: absolute; left: 50%; top: -3px; width: 7px; height: 7px;
+    border: 1px solid var(--gold); background: var(--gold);
+    border-radius: 50%; transform: translateX(-50%);
+  }
+
+  /* — 三件作品卡片 — */
+  .feature-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    margin: 8px 0 30px;
+  }
+  .card {
+    background: var(--paper); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 18px 16px;
+    box-shadow: 0 2px 6px rgba(120,90,30,.05);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(120,90,30,.10); }
+  .card-head { display: flex; gap: 12px; align-items: baseline; margin-bottom: 8px; }
+  .card-head .num {
+    font-family: var(--display); font-size: 13px; color: var(--gold);
+    font-weight: 600; letter-spacing: .04em;
+  }
+  .card-head h3 {
+          font-weight: 600; font-size: 15px; line-height: 1.1; margin: 0; color: #1f1d1a;
+    letter-spacing: -.01em;
+  }
+  .card p { margin: 0; color: var(--ink-soft); line-height: 1.7; font-size: 13px; }
+
+  /* — 工作区选择器 — */
+  .workspace-strip {
+    display: grid; grid-template-columns: minmax(0,1fr) 320px;
+    gap: 22px; align-items: stretch;
+    background: var(--paper); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 18px 22px;
+    box-shadow: var(--shadow);
+  }
+  .workspace-title {
+    font-family: var(--display); font-size: 13px; color: var(--ink-soft);
+    letter-spacing: .12em; margin-bottom: 10px;
+  }
+  .workspace-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ws-card {
+    padding: 12px 14px; border-radius: 12px;
+    background: var(--bg-soft); border: 1px solid var(--line);
+    cursor: pointer; transition: all .12s;
+  }
+  .ws-card:hover { background: var(--gold-soft); border-color: var(--gold); }
+  .ws-card h4 { margin: 0; font-size: 15px; color: #1f1d1a; }
+  .ws-card small { color: var(--ink-mute); font-size: 12px; }
+
+  /* — 输入提示区 — */
+  .prompt-box {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 6px;
+    display: flex; flex-direction: column;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.04);
+    margin: 0 0 10px;
+  }
+  .prompt-box textarea {
+    border: 0; background: transparent; padding: 14px; resize: vertical;
+    font: 15px/1.75 var(--ui-sans); color: var(--ink); outline: none;
+  }
+  .prompt-actions { display: flex; gap: 8px; padding: 6px; }
+  .btn-primary {
+    margin-left: auto;
+    background: #1f1d1a;
+    color: #f4ead4; border: 0;
+    padding: 10px 20px; border-radius: 8px; font-weight: 60px 14px;
+    transition: background .15s, transform .08s;
+    cursor: pointer;
+  }
+  .btn-primary:hover { background: #333029; }
+  .btn-primary:active { transform: translateY(1px); }
+  .btn-ghost {
+    background: transparent; color: var(--ink-soft); border: 1px solid var(--line);
+    padding: 9px 18px; border-radius: 8px; cursor: pointer; font-weight: 50px 13px;
+    transition: all .12s;
+  }
+  .btn-ghost:hover { background: var(--bg-soft); color: #333029; }
+
+  /* — Footer — */
+  .footer-hint {
+    margin-top: 18px; color: var(--ink-mute); text-align: center;
+    font-size: 15/13px;
+  }
+  .footer-hint code {
+    background: rgba(185,153,86,.13); padding: 1px 6px; border-radius: 4px;
+    color: #333029; font-family: ui-monospace, Menlo, Consolas, monospace;
+  }
+
+  /* — 注释说明区（demo 自身的标注，正式界面不会有） — */
+  .notes {
+    max-width: 1000px; margin: 16px auto 48px; padding: 0 24px;
+    color: var(--ink-mute); font-size: 13px;
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="hero">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
+        <div class="brand">
+          <div class="brand-mark">书</div>
+          <div class="brand-text">A I N O V E L</div>
+        </div>
+        <div style="color:var(--ink-mute);font-size:12px;">本地 · 私密 · 无打扰</div>
+      </div>
+
+      <div style="height:56px"></div>
+
+      <div style="display:grid;gap:42px;margin-top:-22px;">
+        <h2 style="font-family:var(--display);font-weight:700;font-size:17px;color:#1f1d1a;letter-spacing:-.01em;">
+          你的故事，从这里开始
+        </h2>
+      </div>
+
+      <div>
+        <h2 style="font-family:var(--display);font-weight:600;font-size:24px;color:#1f1d1a;margin-bottom:10px;text-align:center;">
+          打开一本已有的作品
+        </h2>
+        <div class="workspace-strip">
+          <div>
+            <h2 style="font-size:13px;font-weight:600;color:var(--ink-soft);margin:0 0 10px;letter-spacing:.02em">最近打开</h2>
+            <div class="workspace-cards">
+              <div class="ws-card"><h4>边城</h4><small>第三章 · 写作中</small></div>
+              <div class="ws-card"><h4>悬疑短篇</h4><small>大纲阶段</small></div>
+            </div>
+          </div>
+          <div>
+            <h2 style="font-size:13px;font-weight:600;color:var(--ink-soft);margin:0 0 10px;letter-spacing:.02em;">新建工作区</h2>
+            <div class="workspace-title" style="margin:0 0 10px;color:var(--ink-mute);font-size:11px;letter-spacing:.04em;">作品名称</div>
+            <div class="prompt-box">
+              <textarea rows="2" placeholder="给你的书写个名字，或者把灵感写在这里"></textarea>
+              <div class="prompt-actions">
+                <button class="btn-ghost" style="background:transparent; border:1px solid var(--line);">导入旧稿</button>
+                <button class="btn-primary">开新书</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;">
+              <button type="button" style="background:var(--bg-soft);border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:12px;color:var(--ink-soft);cursor:pointer;" onmouseover="this.style.background='var(--gold-soft)'" onmouseout="this.style.background='var(--bg-soft)'" >写一部仙侠长篇</button>
+              <button type="button" style="background:var(--bg-soft);border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:12px;color:var(--ink-soft);cursor:pointer;">悬疑短篇</button>
+              <button type="button" style="background:var(--bg-soft);border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:12px;color:var(--ink-soft);cursor:pointer;">都市悬疑</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="footer-hint">按 <code>Enter</code> 继续</p>
+</body>
+</html>

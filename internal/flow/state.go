@@ -51,6 +51,14 @@ func LoadState(store *storepkg.Store) (State, error) {
 				s.NextChapterWriting = writing
 			}
 		}
+		// 弧/卷边界确认门：写作期规划产物被改写（指纹失配最近一次用户确认）时，
+		// Route 在派发弧/卷规划与写作链之前停机。读取失败按错误处理——门事实
+		// 不明时不得继续派单，与 FoundationMissing 的保守口径一致。
+		unconfirmed, err := store.FoundationUnconfirmed()
+		if err != nil {
+			return s, fmt.Errorf("check foundation confirmation: %w", err)
+		}
+		s.FoundationUnconfirmed = unconfirmed
 	}
 
 	if n := len(progress.CompletedChapters); n > 0 {

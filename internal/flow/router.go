@@ -59,6 +59,11 @@ type State struct {
 	// 下一章基于计划和 unit 工件推导出的写作进度。计划不存在时为 nil；
 	// 旧版无 units 的计划 TotalUnits=0，等待重新规划或人工迁移。
 	NextChapterWriting *domain.WritingProgress
+
+	// 弧/卷边界确认门：写作期规划产物（expand_arc/append_volume/revise_outline
+	// 等）改写后内容指纹偏离最近一次用户确认。true 时 Route 在派发弧/卷规划
+	// 与写作链之前停机，等用户确认新规划。
+	FoundationUnconfirmed bool
 }
 
 // Route 根据事实返回下一步确定性指令；返回 nil 由 Engine 按调用上下文处理。
@@ -130,6 +135,14 @@ func Route(s State) *Instruction {
 	// 4. 用户干预处理中：Arbiter 正在裁定，Engine 不抢占。旧项目残留的
 	// Reviewing 会按普通 writing 继续，避免等待已删除的自动评审流程。
 	if p.Flow == domain.FlowSteering {
+		return nil
+	}
+
+	// 4.5 弧/卷边界确认门：expand_arc / append_volume / revise_outline 等规划
+	// 动作落盘后指纹偏离最近一次用户确认，继续写作链之前停机等用户确认。
+	// 规划派发本身（分支 5-7）在门后正常执行：确认后指纹归位 → 放行派发 →
+	// 展开落盘（指纹再变）→ 停机确认，形成「展开 → 确认 → 续写」闭环。
+	if s.FoundationUnconfirmed {
 		return nil
 	}
 

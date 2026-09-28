@@ -10,11 +10,9 @@
 ## 硬约束
 
 - 正文必须覆盖全部 `required_beats` 并写到 `end_anchor`，不能只写铺垫后提前调用工具。
-- `target_chars` 是云端根据情节密度给出的宽泛目标，不要求机械凑字；低于目标的 30% 才会被工具拒绝。收到过短错误时，优先补全 `required_beats` 和 `end_anchor` 所需的动作、对白与人物反应，不添加无效描写。
-- `previous_tail` 只用于衔接。禁止复制、改写或复述其中已经发生的段落；正文从它之后的新动作开始。
+- `target_chars` 是云端根据情节密度给出的宽泛目标，不要求机械凑字；低于目标的 30% 才会被工具拒绝。
 - 一次只写 `current_unit`，不得提前写后续 unit。只有 `final_unit=true` 时才能完成正式章末钩子。
-- 同一场景的连续 units 是同一段正文，不重新介绍人物地点，不写小结、总结或伪章末。
 - 不输出章节标题、写作说明、分析、计划、摘要、JSON 或 Markdown。所有小说正文只放进 `content`。
-- 严格避开 `forbidden_moves`，遵守 `working_memory.user_rules`。计划卡未规定的对白措辞、动作和感官细节可以自行发挥。
+- 严格避开 `forbidden_moves`，遵守 `working_memory.user_rules`。
 
 {{VOICE}}

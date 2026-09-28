@@ -127,6 +127,10 @@ type RuntimeSnapshot struct {
 	CompassDirection string
 	CompassScale     string
 
+	// 大纲确认门：规划产物就绪、等待用户确认时 Pending=true
+	OutlineReviewPending bool
+	OutlineReviewSummary string // 模型审查结论摘要
+
 	// 详情
 	LastCommitSummary  string
 	LastReviewSummary  string
@@ -190,24 +194,6 @@ type AgentContextSnapshot struct {
 	SummaryMessages int
 	CompactedCount  int
 	KeptCount       int
-}
-
-// CoCreateMessage 是共创对话的消息。
-type CoCreateMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
-// CoCreateReply 是共创对话的 LLM 回复。Raw 保留模型完整四段原文，
-// 用于写回 history 让下一轮模型看到自己上一轮的 [DRAFT]，从而真正在
-// 已有草稿上累积更新（仅 Message 不含 [DRAFT]，会导致模型每轮凭对话重新归纳）。
-// Suggestions 是 AI 主动给的"接下来你可能想说"，用户卡壳时按数字键一键填入输入框。
-type CoCreateReply struct {
-	Message     string
-	Prompt      string
-	Ready       bool
-	Suggestions []string
-	Raw         string
 }
 
 type StreamEventKind string

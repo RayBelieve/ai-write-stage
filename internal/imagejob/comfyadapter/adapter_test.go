@@ -4,17 +4,20 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/Leixx98/ai-write-stage/internal/comfyui"
+	"github.com/Leixx98/ai-write-stage/internal/imagejob"
 )
 
 type testReporter struct {
 	status, stage  string
 	current, total int
 	node           string
+	raw            string
 }
 
 func (r *testReporter) Stage(status, stage string) { r.status, r.stage = status, stage }
@@ -22,8 +25,42 @@ func (r *testReporter) ExternalID(string)          {}
 func (r *testReporter) Progress(current, total int, node string) {
 	r.current, r.total, r.node = current, total, node
 }
-func (r *testReporter) Prompt(string, map[string]any) {}
-func (r *testReporter) ProviderSnapshot(any)          {}
+func (r *testReporter) Prompt(raw string, _ map[string]any) { r.raw = raw }
+func (r *testReporter) ProviderSnapshot(any)                {}
+
+func TestGenerateAndValidatePromptRetriesInvalidJSON(t *testing.T) {
+	schema := imagejob.PromptSchema{Fields: []imagejob.PromptField{{ID: "positive_prompt", ValueType: "string", Exposed: true}}}
+	var attempts int
+	prompter := imagejob.PrompterFunc(func(_ context.Context, request imagejob.PromptRequest) (string, error) {
+		attempts++
+		if attempts == 1 {
+			return "The image is...", nil
+		}
+		if !strings.Contains(request.SystemPrompt, "JSON 校验") {
+			t.Fatal("retry did not include validation feedback")
+		}
+		return `{"positive_prompt":"portrait"}`, nil
+	})
+	reporter := &testReporter{}
+	raw, parsed, err := generateAndValidatePrompt(context.Background(), prompter, imagejob.PromptRequest{SystemPrompt: "Generate JSON"}, schema, true, reporter)
+	if err != nil || attempts != 2 || !parsed.Valid || parsed.Values["positive_prompt"] != "portrait" || reporter.raw != raw {
+		t.Fatalf("raw=%q parsed=%+v attempts=%d reporter=%+v err=%v", raw, parsed, attempts, reporter, err)
+	}
+}
+
+func TestGenerateAndValidatePromptPreservesInvalidResponse(t *testing.T) {
+	schema := imagejob.PromptSchema{Fields: []imagejob.PromptField{{ID: "positive_prompt", ValueType: "string", Exposed: true}}}
+	var attempts int
+	prompter := imagejob.PrompterFunc(func(context.Context, imagejob.PromptRequest) (string, error) {
+		attempts++
+		return "The image is...", nil
+	})
+	reporter := &testReporter{}
+	_, _, err := generateAndValidatePrompt(context.Background(), prompter, imagejob.PromptRequest{}, schema, true, reporter)
+	if err == nil || attempts != 2 || reporter.raw != "The image is..." {
+		t.Fatalf("attempts=%d raw=%q err=%v", attempts, reporter.raw, err)
+	}
+}
 
 func TestImageJobClientIDIsUnique(t *testing.T) {
 	if imageJobClientID("ainovel-web", "job-1") == imageJobClientID("ainovel-web", "job-2") {

@@ -53,20 +53,8 @@ func lookupMeta(lookup ModelLookup, agentName string) *sessionLogMeta {
 	return &sessionLogMeta{Provider: provider, Model: model}
 }
 
-// LogCoCreate 追加一条共创对话日志到 meta/sessions/cocreate.jsonl。
-// 共创阶段还没绑定具体小说，统一落到 OutputDir 默认根（output/novel）下，
-// 与正式创作的 agents/* 同位，方便排查。
-func (s *SessionStore) LogCoCreate(entry any) error {
-	data, err := json.Marshal(entry)
-	if err != nil {
-		return fmt.Errorf("marshal cocreate session: %w", err)
-	}
-	data = append(data, '\n')
-	return s.io.AppendLine("meta/sessions/cocreate.jsonl", data)
-}
-
 // Log 追加一条消息到指定路径，自动压缩大内容。
-// 不携带 _meta；仅 cocreate 等无角色路径使用。
+// 不携带 _meta；仅无角色路径使用。
 func (s *SessionStore) Log(rel string, msg agentcore.AgentMessage) error {
 	return s.logEntry(rel, msg, nil)
 }

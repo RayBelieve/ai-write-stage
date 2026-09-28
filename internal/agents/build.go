@@ -213,11 +213,15 @@ func BuildWorkers(
 		return guard.NewArchitectStopGuard(store, onGuardBlock)
 	}
 	architectThinking := EffectiveThinking(architectModel, roleThinking(cfg, "architect"))
+	// 协议段（固化，含工具调用契约与 simulation guidance）+ 创作段（Web 可编辑）。
+	architectShortPrompt := assets.ComposeSystemPrompt(bundle.Prompts.ArchitectShort, bundle.Prompts.CreativeArchitect)
+	architectLongPrompt := assets.ComposeSystemPrompt(bundle.Prompts.ArchitectLong, bundle.Prompts.CreativeArchitect)
+	chapterPlannerPrompt := assets.ComposeSystemPrompt(bundle.Prompts.ChapterPlanner, bundle.Prompts.CreativeChapterPlanner)
 	architectShort := subagent.Config{
 		Name:             "architect_short",
 		Description:      "短篇规划师：为单卷、单冲突、高密度故事生成紧凑设定与扁平大纲",
 		Model:            architectModel,
-		SystemPrompt:     bundle.Prompts.ArchitectShort,
+		SystemPrompt:     architectShortPrompt,
 		Tools:            architectTools,
 		MaxTurns:         15,
 		MaxRetries:       subagentMaxRetries,
@@ -234,7 +238,7 @@ func BuildWorkers(
 		Name:                "architect_long",
 		Description:         "长篇规划师：为连载型、可持续升级的故事生成分层设定与卷弧大纲",
 		Model:               architectModel,
-		SystemPrompt:        bundle.Prompts.ArchitectLong,
+		SystemPrompt:        architectLongPrompt,
 		Tools:               architectTools,
 		MaxTurns:            20,
 		MaxRetries:          subagentMaxRetries,
@@ -249,7 +253,7 @@ func BuildWorkers(
 		Name:             "chapter_planner",
 		Description:      "章节执行规划师：按 Writer 当前上下文预算把大纲章拆成场景卡和写作片段卡",
 		Model:            chapterPlannerModel,
-		SystemPrompt:     bundle.Prompts.ChapterPlanner,
+		SystemPrompt:     chapterPlannerPrompt,
 		Tools:            chapterPlannerTools,
 		MaxTurns:         8,
 		MaxRetries:       subagentMaxRetries,
@@ -264,25 +268,29 @@ func BuildWorkers(
 	}
 	// 唯一组装路径:协议模板 {{VOICE}} 原位回填文风段,再追加风格预设。
 	// eval 的 voice A/B 走同一函数,保证两臂等价(docs/history/voice-layer.md §3.2)。
-	writerPrompt := assets.BuildWriterPrompt(bundle.Prompts.Writer, bundle.Voice, bundle.Styles[cfg.Style])
+	// 创作段拼在协议（含文风与仿写画像）之后，随 Web 提示词页更新。
+	writerPrompt := assets.BuildWriterPrompt(
+		assets.ComposeSystemPrompt(bundle.Prompts.Writer, bundle.Prompts.CreativeWriter),
+		bundle.Voice, bundle.Styles[cfg.Style])
 
 	restore := &ctxpack.WriterRestorePack{}
 	restore.Refresh(store)
 
 	writerModel := newWriterBudgetModel(writerBaseModel, resolveWriterContextWindow)
 	writer := subagent.Config{
-		Name:                "writer",
-		Description:         "本地创作者：按云端章节计划一次只写一个 writing unit",
-		Model:               writerModel,
-		SystemPrompt:        writerPrompt,
-		Tools:               writerTools,
-		MaxTurns:            6,
-		MaxRetries:          subagentMaxRetries,
-		ThinkingLevel:       resolvedRoleThinking(writerModel, cfg, "writer"),
-		StopAfterToolResult: writerStopAfterToolResult,
-		OnMessage:           onMsg,
-		CacheLastMessage:    "ephemeral",
-		PromptCacheKey:      cacheBase + "-writer",
+		Name:                 "writer",
+		Description:          "本地创作者：按云端章节计划一次只写一个 writing unit",
+		Model:                writerModel,
+		SystemPrompt:         writerPrompt,
+		Tools:                writerTools,
+		MaxTurns:             6,
+		MaxRetries:           subagentMaxRetries,
+		ThinkingLevel:        resolvedRoleThinking(writerModel, cfg, "writer"),
+		StopAfterToolResult:  writerStopAfterToolResult,
+		OnMessage:            onMsg,
+		CacheLastMessage:     "ephemeral",
+		PromptCacheKey:       cacheBase + "-writer",
+		StablePromptCacheKey: true,
 		StopGuardFactory: func(_, _ string) agentcore.StopGuard {
 			return guard.NewWriterStopGuard(store, onGuardBlock)
 		},

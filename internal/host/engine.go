@@ -661,7 +661,14 @@ func (e *engine) runWorker(ctx context.Context, inst *flow.Instruction) error {
 	runCtx := agentcore.WithToolProgress(ctx, func(p agentcore.ProgressPayload) {
 		e.observer.workerProgress(p)
 	})
-	_, err := e.workers.Run(runCtx, inst.Agent, inst.Task)
+	var runResult subagent.RunResult
+	var err error
+	if inst.Agent == "writer" {
+		runResult, err = e.workers.RunWithInitialPrompt(runCtx, inst.Agent, writerStablePromptPrefix(e.store, inst), inst.Task)
+	} else {
+		runResult, err = e.workers.Run(runCtx, inst.Agent, inst.Task)
+	}
+	_ = runResult
 	if err == nil {
 		// 成功即清失败追踪:同键的下一次失败重新享有"先重试一次"额度。
 		e.failedKey = ""

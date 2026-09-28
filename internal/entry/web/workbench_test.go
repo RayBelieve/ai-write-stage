@@ -141,10 +141,13 @@ func TestNovelWorkbenchPutsEventsAboveState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, needle := range []string{"formatContext", "formatCost", "formatExclusive", "ModelContextWindow"} {
+	for _, needle := range []string{"formatContext", "formatCacheHitRate", "cacheStatsByModel", "CachePerModel", "ModelContextWindow"} {
 		if !bytes.Contains(script, []byte(needle)) {
 			t.Fatalf("app.js missing %s", needle)
 		}
+	}
+	if bytes.Contains(script, []byte(`['占用'`)) || bytes.Contains(script, []byte(`['费用'`)) {
+		t.Fatal("status bar should not render occupation or cost")
 	}
 }
 

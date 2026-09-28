@@ -110,7 +110,7 @@ func runWithConfig(cfg bootstrap.Config, opts cliOptions, args []string) {
 		if err != nil {
 			die("error: %v", err)
 		}
-		if err := headless.Run(cfg, bundle, headless.Options{Prompt: prompt}); err != nil {
+		if err := headless.Run(cfg, bundle, headless.Options{Prompt: prompt, AutoConfirm: opts.AutoConfirm}); err != nil {
 			die("error: %v", err)
 		}
 		return
@@ -139,6 +139,7 @@ type cliOptions struct {
 	Workspace     string
 	Prompt        string
 	PromptFile    string
+	AutoConfirm   bool
 	Version       bool
 	Update        bool
 	UpdateVersion string
@@ -200,6 +201,8 @@ func parseCLIOptions(argv []string) (cliOptions, []string, error) {
 			}
 			opts.PromptFile = argv[i+1]
 			i++
+		case "--yes":
+			opts.AutoConfirm = true
 		default:
 			args = append(args, argv[i])
 		}

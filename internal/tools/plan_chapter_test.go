@@ -77,16 +77,16 @@ func TestValidateWritingPlanAppliesEightKWriterBudget(t *testing.T) {
 	}{
 		{name: "valid", mutate: func(*domain.ChapterPlan) {}},
 		{name: "low density unit valid", mutate: func(p *domain.ChapterPlan) {
-			p.Scenes[0].Units[0].TargetChars = 200
-			p.Scenes[0].Units[1].TargetChars = 300
-			p.Scenes[0].TargetChars = 500
-			p.TargetChars = 500
+			p.Scenes[0].Units[0].TargetChars = 500
+			p.Scenes[0].Units[1].TargetChars = 600
+			p.Scenes[0].TargetChars = 1100
+			p.TargetChars = 1100
 		}},
-		{name: "unit too short", mutate: func(p *domain.ChapterPlan) { p.Scenes[0].Units[0].TargetChars = 199 }, want: "200-1000"},
-		{name: "unit too long", mutate: func(p *domain.ChapterPlan) { p.Scenes[0].Units[0].TargetChars = 1001 }, want: "200-1000"},
+		{name: "unit too short", mutate: func(p *domain.ChapterPlan) { p.Scenes[0].Units[0].TargetChars = 499 }, want: "500-1200"},
+		{name: "unit too long", mutate: func(p *domain.ChapterPlan) { p.Scenes[0].Units[0].TargetChars = 1201 }, want: "500-1200"},
 		{name: "too many beats", mutate: func(p *domain.ChapterPlan) {
-			p.Scenes[0].Units[0].RequiredBeats = []string{"一", "二", "三", "四", "五", "六"}
-		}, want: "at most 5 items"},
+			p.Scenes[0].Units[0].RequiredBeats = []string{"一", "二", "三", "四"}
+		}, want: "at most 3 items"},
 		{name: "beat too verbose", mutate: func(p *domain.ChapterPlan) {
 			p.Scenes[0].Units[0].RequiredBeats[0] = strings.Repeat("长", 73)
 		}, want: "at most 72 characters"},
@@ -115,16 +115,16 @@ func TestValidateWritingPlanAppliesEightKWriterBudget(t *testing.T) {
 func TestValidateWritingPlanKeepsDynamicRangeForLargeWindow(t *testing.T) {
 	plan := executableChapterPlan()
 	for i := range plan.Scenes[0].Units {
-		plan.Scenes[0].Units[i].TargetChars = 1000
+		plan.Scenes[0].Units[i].TargetChars = 1400
 	}
-	plan.Scenes[0].TargetChars = 2000
-	plan.TargetChars = 2000
+	plan.Scenes[0].TargetChars = 2800
+	plan.TargetChars = 2800
 	if err := validateWritingPlanWithBudget(plan, WriterPlanningBudgetForContext(32768)); err != nil {
-		t.Fatalf("large Writer window should accept the shared 200-1000 range: %v", err)
+		t.Fatalf("large Writer window should accept the 500-2000 range: %v", err)
 	}
-	plan.Scenes[0].Units[0].TargetChars = 1001
-	if err := validateWritingPlanWithBudget(plan, WriterPlanningBudgetForContext(32768)); err == nil || !strings.Contains(err.Error(), "200-1000") {
-		t.Fatalf("large Writer window must not restore the old 1200-character allowance: %v", err)
+	plan.Scenes[0].Units[0].TargetChars = 2001
+	if err := validateWritingPlanWithBudget(plan, WriterPlanningBudgetForContext(32768)); err == nil || !strings.Contains(err.Error(), "500-2000") {
+		t.Fatalf("large Writer window must enforce the 2000-character ceiling: %v", err)
 	}
 }
 

@@ -4,34 +4,33 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ainovel Web Workbench</title>
-  <link rel="stylesheet" href="/static/style.css?v=image-browser-v2">
-  <link rel="stylesheet" href="/static/reader.css">
+  <link rel="stylesheet" href="/static/tokens.css?v=frontend-foundation-v1">
+  <link rel="stylesheet" href="/static/style.css?v=review-gate-v2">
+  <link rel="stylesheet" href="/static/library.css?v=library-v1">
+  <link rel="stylesheet" href="/static/writing.css?v=writing-v4">
+  <link rel="stylesheet" href="/static/components.css?v=components-v1">
+  <link rel="stylesheet" href="/static/image-generation.css?v=image-generation-ui-v1">
+  <link rel="stylesheet" href="/static/tavern.css?v=tavern-v1">
+  <link rel="stylesheet" href="/static/reader.css?v=reader-v3">
 </head>
-<body data-image-chat-enabled="false" data-image-play-enabled="false">
-  <section id="welcome" class="welcome-screen" aria-labelledby="welcome-title">
-    <button id="welcome-skip" class="welcome-skip" type="button">跳过欢迎页</button>
-    <div class="welcome-content">
-      <header class="welcome-heading">
-        <div class="welcome-kicker">AI NOVEL CREATION ENGINE</div>
-        <h1 id="welcome-title">A I N O V E L</h1>
-        <p>AI-Powered Novel Creation Engine</p>
+<body data-image-chat-enabled="false" data-image-play-enabled="false" data-view="dashboard">
+  <section id="welcome" class="welcome-screen library-screen" aria-labelledby="welcome-title">
+    <div class="library-shell">
+      <header class="library-header">
+        <div class="library-brand"><span class="library-brand-mark">书</span><span class="library-brand-name">AI CREATE SPACE</span></div>
+        <span class="library-header-meta">本地创作空间 · 私密 · 无打扰</span>
       </header>
-
-      <div class="welcome-rule" aria-hidden="true"></div>
-      <div class="welcome-features" aria-label="核心能力">
-        <div class="welcome-feature"><strong>&gt;&gt;</strong><span><b>多模型协作</b><small>云端章节规划 / 本地逐片段创作 / Editor 审阅</small></span></div>
-        <div class="welcome-feature"><strong>::</strong><span><b>断点恢复</b><small>崩溃或中断后从上次进度自动续写</small></span></div>
-        <div class="welcome-feature"><strong>&lt;&gt;</strong><span><b>实时干预</b><small>创作过程中随时调整剧情走向</small></span></div>
-        <div class="welcome-feature"><strong>##</strong><span><b>分层长篇</b><small>支持卷 - 弧 - 章分层结构的长篇创作</small></span></div>
+      <div class="library-intro">
+        <h1 id="welcome-title">你的故事，从这里开始</h1>
+        <p>打开一本作品继续写下去，或从一个想法开始新建属于你的创作空间。</p>
       </div>
-      <div class="welcome-rule" aria-hidden="true"></div>
-
+      <div class="welcome-content">
       <div id="welcome-workspaces" class="welcome-workspaces">
-        <div class="welcome-mode"><span>工作区</span><small>选择一本已有的书，或新建工作区后再开始创作</small></div>
+        <div class="library-section-heading"><div><div class="library-eyebrow">Library</div><div class="welcome-mode"><span>我的作品</span><small>选择一本已有的书，或新建工作区后再开始创作</small></div></div></div>
         <div id="welcome-workspace-list" class="welcome-workspace-list"></div>
         <div class="welcome-workspace-new">
-          <input id="welcome-workspace-name" maxlength="100" placeholder="新工作区名称，例如：边城">
-          <button id="welcome-workspace-create" type="button">新建工作区</button>
+          <input id="welcome-workspace-name" maxlength="100" placeholder="新作品名称，例如：边城">
+          <button id="welcome-workspace-create" type="button">新建作品</button>
         </div>
       </div>
 
@@ -56,7 +55,8 @@
         <p>已加载上次进度，点击工作台中的“继续”后才会恢复创作。</p>
         <button id="welcome-enter" type="button">进入工作台</button>
       </div>
-      <p class="welcome-import">已有小说存稿想接着写？进入工作台后可在“设置”中导入。</p>
+      <p class="welcome-import">已有小说存稿？进入工作台后可以从“设置”导入。</p>
+      </div>
     </div>
   </section>
 
@@ -64,28 +64,41 @@
   <header class="topbar">
     <div class="brand"><strong>ainovel</strong><div id="workspace-switcher" class="workspace-switcher"><button id="workspace-current" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="workspace-menu">未选择工作区</button><div id="workspace-menu" class="workspace-menu" hidden role="menu"><div id="workspace-menu-list"></div><div class="workspace-menu-new"><input id="workspace-menu-name" maxlength="100" placeholder="新工作区名称"><button id="workspace-menu-create" type="button">新建</button></div></div></div><span id="model">模型未配置</span></div>
     <nav class="tabs" aria-label="工作台导航">
+      <button id="library-open" class="tab" type="button">书库</button>
       <button class="tab active" data-view="dashboard">小说</button>
       <button class="tab" data-view="galgame">酒馆</button>
       <button class="tab" data-view="api-settings">API</button>
       <button class="tab" data-view="app-settings">设置</button>
-      <button class="tab" data-view="prompts">小说写作提示词</button>
+      <button class="tab" data-view="prompts">创作要求</button>
       <button class="tab" data-view="image-generation">生图设置</button>
     </nav>
     <div id="status" class="status">就绪</div>
   </header>
 
-  <main id="dashboard" class="view active-view">
-    <div class="workspace">
-      <aside class="sidebar">
-        <section class="panel events"><h2>事件</h2><div id="events" class="scroll"></div></section>
-        <section class="panel state"><h2>状态</h2><dl id="state"></dl></section>
+  <main id="dashboard" class="view active-view writing-view">
+    <div class="writing-workspace">
+      <aside class="writing-outline panel detail">
+        <div id="detail" class="scroll"></div>
       </aside>
-      <section class="panel stream"><h2>流式输出</h2><pre id="stream" class="scroll"></pre></section>
-      <aside class="panel detail"><h2>详情</h2><div id="detail" class="scroll"></div><div id="image-browser" class="image-browser" hidden><header class="image-browser-head"><h2>图片浏览</h2><button id="image-browser-close" class="small" type="button">关闭</button></header><div id="image-browser-list" class="image-browser-list scroll"></div></div></aside>
+      <section class="panel stream" data-writing-canvas>
+        <div class="writing-panel-heading writing-canvas-tools"><button id="writing-log-toggle" class="writing-log-toggle" type="button" aria-expanded="false" aria-controls="writing-events-drawer">运行详情</button><span class="writing-stream-state">流式更新</span></div>
+        <pre id="stream" class="scroll"></pre>
+        <div class="writing-canvas-hint">AI 的规划、写作和审阅结果会显示在这里</div>
+      </section>
+      <aside class="writing-side">
+        <section id="image-browser" class="image-browser writing-images"><header class="image-browser-head"><h2>图片</h2></header><div id="image-browser-list" class="image-browser-list scroll"></div></section>
+        <section id="writing-events-drawer" class="writing-runtime panel events" data-writing-events-drawer>
+          <div class="writing-panel-heading"><h2>运行状态</h2><button id="writing-log-close" class="writing-log-close" type="button" aria-label="关闭运行详情">×</button></div>
+          <dl id="state"></dl>
+          <div class="writing-panel-heading"><h2>活动记录</h2></div>
+          <div id="events" class="scroll"></div>
+        </section>
+      </aside>
     </div>
     <footer class="controls">
       <div class="controls-group">
         <button id="pause" type="button">继续</button>
+        <button id="review-open" type="button" hidden>确认大纲</button>
         <button id="action-other" class="secondary" type="button">其他指令</button>
         <button id="action-replan" class="secondary" type="button">重新规划</button>
         <button id="action-rewrite" class="secondary" type="button">重写</button>
@@ -99,7 +112,6 @@
             <button type="button" role="menuitem" data-export="epub" title="导出图文 EPUB">EPUB</button>
           </div>
         </div>
-        <button id="image-browser-open" class="secondary" type="button">图片浏览</button>
         <button id="reader-open" class="secondary" type="button">沉浸式阅读</button>
       </div>
     </footer>
@@ -186,7 +198,7 @@
 
   <main id="app-settings" class="view settings-view"><section class="settings-panel"><div class="section-heading"><div><h1>设置</h1><p>交互式导入与写作要求。</p></div></div><section class="import-wizard"><div class="subheading"><div><h2>导入已有小说</h2><span id="import-state" class="job-status">空闲</span></div><div class="heading-actions"><button id="import-cancel-settings" class="danger" type="button" hidden>取消导入</button><button id="import-open" type="button">打开导入</button></div></div></section><section class="writing-settings"><div class="writing-settings-head"><h2>写作要求</h2><button data-action="save-workflow" type="button">保存写作要求</button></div><div class="preset-toolbar"><select id="writing-rules-preset" aria-label="写作要求预设"><option>默认要求</option></select><button type="button" class="small" data-action="save-writing-rules">覆盖保存</button><button type="button" class="small" data-action="save-writing-rules-as">另存为</button><button type="button" class="small" data-action="default-writing-rules">恢复默认</button></div><textarea id="writing-rules" rows="9"></textarea><small class="field-help">保存后会立即更新 Host 的用户规则，并参与后续规划和写作。</small></section><div id="settings-msg" class="notice"></div></section></main>
 
-  <main id="prompts" class="view settings-view"><section class="settings-panel"><div class="section-heading"><div><h1>写作提示词</h1><p>配置架构师、章节规划师、写作者和编辑的提示词模板。</p></div></div><div class="preset-toolbar prompt-preset-toolbar"><label class="preset-label" for="prompt-preset">提示词组合</label><select id="prompt-preset" aria-label="提示词组合"><option>默认配置</option></select><button type="button" class="small" data-action="save-prompts">覆盖保存</button><button type="button" class="small" data-action="save-prompts-as">另存为</button><button type="button" class="small" data-action="default-prompts">恢复默认</button></div><small class="field-help prompt-preset-help">提示词会在 ainovel 启动时加载；保存或切换组合后请重启程序，新的提示词才会用于后续小说写作。</small><div id="prompt-editors" class="prompt-editors"></div><div id="prompts-msg" class="notice"></div></section></main>
+  <main id="prompts" class="view settings-view"><section class="settings-panel"><div class="section-heading"><div><h1>创作要求</h1><p>调整架构师、章节规划师和写作者的创作要求。</p></div></div><div class="preset-toolbar prompt-preset-toolbar"><label class="preset-label" for="prompt-preset">提示词组合</label><select id="prompt-preset" aria-label="提示词组合"><option>默认配置</option></select><button type="button" class="small" data-action="save-prompts">覆盖保存</button><button type="button" class="small" data-action="save-prompts-as">另存为</button><button type="button" class="small" data-action="default-prompts">恢复默认</button></div><small class="field-help prompt-preset-help">保存或切换组合后请重启程序生效。</small><div id="prompt-editors" class="prompt-editors"></div><div id="prompts-msg" class="notice"></div></section></main>
 
   <main id="image-generation" class="view settings-view">
     <section class="settings-panel image-generation-settings">
@@ -226,16 +238,16 @@
     <div class="section-heading canvas-heading"><div><h1 id="comfy-dialog-title">ComfyUI 画布</h1><p>导入 ComfyUI API 工作流，在画布中配置字段来源，并用于生图方案。</p></div><div class="heading-actions"><button class="small" data-action="test-connection">测试连接</button><button class="small" data-action="save-comfyui">保存连接</button><button class="small" data-action="save-workflow-definition">保存工作流</button><button class="icon-button comfy-dialog-close" type="button" data-action="close-comfyui" title="关闭 ComfyUI" aria-label="关闭 ComfyUI">×</button></div></div>
     <div id="comfy-msg" class="notice"></div>
     <div class="canvas-workbench">
-      <aside class="canvas-sidebar panel-surface"><div class="canvas-sidebar-head"><h2>工作流</h2><div class="icon-actions"><button class="small" data-action="new-workflow" title="新建工作流">+</button><button class="small" data-action="import-workflow" title="导入 API JSON">导入</button><input id="workflow-file" type="file" accept=".json,application/json" hidden></div></div><input id="workflow-search" class="canvas-search" placeholder="搜索工作流"><div id="workflow-list" class="workflow-list"><span class="muted">暂无工作流</span></div><div class="sidebar-status"><span>连接状态</span><strong id="canvas-connection-status">未知</strong></div><div id="instances-list" class="hidden-compat"></div><select id="instance-strategy" class="hidden-compat"><option value="least_queue">最少队列</option></select><div id="instances-msg" class="notice"></div></aside>
-      <section class="canvas-main panel-surface"><div class="canvas-toolbar"><div class="canvas-mode"><strong>工作流</strong></div><div class="canvas-tools"><button class="small" data-canvas-tool="zoom-out" title="缩小">−</button><span id="canvas-zoom-label">100%</span><button class="small" data-canvas-tool="zoom-in" title="放大">+</button><button class="small" data-canvas-tool="fit" title="适配画布">适配</button><button class="small" data-canvas-tool="fullscreen" title="全屏">□</button></div></div><div id="canvas-stage" class="canvas-stage"><svg id="workflow-canvas" class="workflow-canvas" aria-label="工作流图"><g id="graph-viewport"><g id="graph-edges"></g><g id="graph-nodes"></g></g></svg><div id="canvas-empty" class="canvas-empty">请先导入或选择工作流</div></div><div class="canvas-footer"><span id="workflow-msg" class="notice"></span><button class="small" data-action="validate-workflow">校验工作流</button><button class="small" data-action="export-workflow">导出 JSON</button></div></section>
-      <aside class="canvas-inspector panel-surface"><div class="inspector-tabs"><button class="inspector-tab active" data-inspector-tab="node">节点</button><button class="inspector-tab" data-inspector-tab="prompt">提示词</button><button class="inspector-tab" data-inspector-tab="run">运行</button></div><section id="node-inspector" class="inspector-section"><div id="node-inspector-empty" class="muted">点击画布节点配置需要暴露的字段。</div><div id="node-inspector-body" hidden><div class="inspector-title"><strong id="inspector-node-title"></strong><button class="small" data-action="close-node">关闭</button></div><div id="node-field-editor" class="node-field-editor"></div><button class="small" data-action="save-node-fields">应用字段</button></div></section><section id="prompt-inspector" class="inspector-section prompt-inspector" hidden><div class="run-head"><h2>生图提示词</h2></div><label>预置提示词<select id="comfy-prompter-preset"></select></label><small id="comfy-prompter-preset-help" class="field-help"></small><label class="prompter-template-label">提示词模板<textarea id="comfy-prompter-template" rows="10" placeholder="输入用于生成工作流字段 JSON 的系统提示词"></textarea></label><div class="prompt-field-heading"><strong>字段说明</strong><small>说明会注入提示词模型，指导每个自定义字段的生成内容。</small></div><div id="comfy-field-notes" class="prompt-field-notes"><span class="muted">请先在节点中暴露字段。</span></div><div class="prompt-inspector-actions"><button class="small" type="button" data-action="apply-prompter">应用到工作流</button><button class="small" type="button" data-action="save-prompter-preset">覆盖预设</button><button class="small" type="button" data-action="save-prompter-preset-as">另存为</button></div></section><section id="run-inspector" class="inspector-section" hidden><div class="run-head"><h2>运行测试</h2><span id="job-status" class="job-status">空闲</span></div><div id="dynamic-fields" class="run-fields"><span class="muted">请先在节点中暴露字段。</span></div><div class="run-actions"><button data-action="cancel-job" class="danger">取消</button><button data-action="retry-job">重试</button></div><div id="job-phase" class="job-phase"></div><div id="job-outputs" class="job-outputs"><span class="muted">结果将在这里显示</span></div><div id="output-preview" class="output-preview"></div><input id="input-media" type="file" accept="image/*,video/*,audio/*" hidden><div id="media-list" class="hidden-compat"></div></section></aside>
+      <aside class="canvas-sidebar panel-surface"><div class="canvas-sidebar-head"><h2>工作流</h2><div class="icon-actions"><button class="small" data-action="new-workflow" title="新建工作流">+</button><button class="small" data-action="import-workflow" title="导入 API JSON">导入</button><input id="workflow-file" type="file" accept=".json,application/json" hidden></div></div><input id="workflow-search" class="canvas-search" placeholder="搜索工作流"><div id="workflow-list" class="workflow-list"><span class="muted">暂无工作流</span></div><div class="sidebar-status"><span>连接状态</span><strong id="canvas-connection-status">未知</strong></div><div id="instances-list" class="hidden-compat"></div><div id="instances-msg" class="notice"></div></aside>
+      <section class="canvas-main panel-surface"><div class="canvas-toolbar"><div class="canvas-mode"><strong>工作流</strong></div><div class="canvas-tools"><button class="small" data-canvas-tool="zoom-out" title="缩小">−</button><span id="canvas-zoom-label">100%</span><button class="small" data-canvas-tool="zoom-in" title="放大">+</button><button class="small" data-canvas-tool="fit" title="适配画布">适配</button><button class="small" data-canvas-tool="fullscreen" title="全屏">□</button></div></div><div id="canvas-stage" class="canvas-stage"><svg id="workflow-canvas" class="workflow-canvas" aria-label="工作流图"><g id="graph-viewport"><g id="graph-edges"></g><g id="graph-nodes"></g></g></svg><div id="canvas-empty" class="canvas-empty">请先导入或选择工作流</div></div><div class="canvas-footer"><span id="workflow-msg" class="notice"></span><a class="small" href="#" data-action="export-workflow">导出 API JSON</a></div></section>
+      <aside class="canvas-inspector panel-surface"><div class="inspector-tabs"><button class="inspector-tab active" data-inspector-tab="node">节点</button><button class="inspector-tab" data-inspector-tab="prompt">提示词</button><button class="inspector-tab" data-inspector-tab="run">任务</button></div><section id="node-inspector" class="inspector-section"><div id="node-inspector-empty" class="muted">点击画布节点配置需要暴露的字段。</div><div id="node-inspector-body" hidden><div class="inspector-title"><strong id="inspector-node-title"></strong><button class="small" data-action="close-node">关闭</button></div><div id="node-field-editor" class="node-field-editor"></div><button class="small" data-action="save-node-fields">应用字段</button></div></section><section id="prompt-inspector" class="inspector-section prompt-inspector" hidden><div class="run-head"><h2>生图提示词</h2></div><label>预置提示词<select id="comfy-prompter-preset"></select></label><small id="comfy-prompter-preset-help" class="field-help"></small><label class="prompter-template-label">提示词模板<textarea id="comfy-prompter-template" rows="10" placeholder="输入用于生成工作流字段 JSON 的系统提示词"></textarea></label><div class="prompt-field-heading"><strong>字段说明</strong><small>说明会注入提示词模型，指导每个自定义字段的生成内容。</small></div><div id="comfy-field-notes" class="prompt-field-notes"><span class="muted">请先在节点中暴露字段。</span></div><div class="prompt-inspector-actions"><button class="small" type="button" data-action="apply-prompter">应用到工作流</button><button class="small" type="button" data-action="save-prompter-preset">覆盖预设</button><button class="small" type="button" data-action="save-prompter-preset-as">另存为</button></div></section><section id="run-inspector" class="inspector-section" hidden><div class="run-head"><h2>任务状态</h2><span id="job-status" class="job-status">空闲</span></div><div class="run-field-heading">暴露字段</div><div id="dynamic-fields" class="run-fields"><span class="muted">暂无暴露字段</span></div><div class="run-actions"><button type="button" data-action="open-image-profiles">生图方案</button><button type="button" data-action="cancel-job" class="danger">取消</button><button type="button" data-action="retry-job">重试</button></div><div id="job-phase" class="job-phase"></div><div id="job-outputs" class="job-outputs"><span class="muted">结果将在这里显示</span></div></section></aside>
     </div>
     <details class="advanced-compat"><summary>高级连接设置</summary><div class="form-grid comfy-config"><label class="wide">服务地址<input id="comfy-url" placeholder="http://127.0.0.1:8188"></label><label>超时时间<input id="comfy-timeout" type="number" min="1000"></label><label>轮询间隔<input id="comfy-poll" type="number" min="100"></label><label>客户端 ID<input id="comfy-client-id"></label><label>最大响应字节数<input id="comfy-max-bytes" type="number" min="1024"></label><label class="switch-label"><input id="comfy-enabled" type="checkbox"> 启用</label><label class="switch-label"><input id="comfy-strict" type="checkbox"> 严格模式</label></div><div id="advanced-msg" class="notice"></div></details>
-    <div class="hidden-compat"><textarea id="workflow-json"></textarea><textarea id="workflow-defaults"></textarea><textarea id="workflow-output"></textarea><input id="output-index" value="0"><select id="workflow-node-list"></select><div id="node-inputs"></div><div id="bindings-body"></div><button data-action="add-binding"></button><button data-action="upload-media"></button><button data-action="preview-output"></button><pre id="job-json"></pre><div id="job-logs"></div></div>
   </section></div></main>
   <div id="node-modal" class="node-modal" hidden><div class="node-modal-backdrop" data-action="close-node"></div><section class="node-modal-card"><div class="inspector-title"><div><strong id="modal-node-title"></strong><small id="modal-node-subtitle"></small></div><button class="small" data-action="close-node">关闭</button></div><div id="modal-field-editor" class="node-field-editor"></div><div class="modal-actions"><button data-action="save-node-fields">应用字段</button></div></section></div>
   <div id="action-modal" class="node-modal" hidden><div class="node-modal-backdrop" data-action="close-action"></div><section class="node-modal-card"><div class="inspector-title"><strong id="action-title">指令</strong><button class="small" data-action="close-action" type="button">关闭</button></div><p id="action-help" class="field-help"></p><label id="action-number-wrap" hidden><span id="action-number-label">从第几章起</span><input id="action-number" type="number" min="1" step="1"></label><label><span id="action-text-label">说明</span><textarea id="action-text" rows="5"></textarea></label><div class="modal-actions"><button id="action-submit" type="button">提交</button></div><div id="action-message" class="notice"></div></section></div>
   <div id="reopen-modal" class="node-modal" hidden><div class="node-modal-backdrop" data-action="close-reopen"></div><section class="node-modal-card"><div class="inspector-title"><strong>继续已完结的故事</strong><button class="small" data-action="close-reopen" type="button">关闭</button></div><label>续写方向<textarea id="reopen-direction" rows="5" placeholder="描述新卷主题、时间跨度或主角的新目标"></textarea></label><div class="modal-actions"><button id="reopen-submit" type="button">重开并继续</button></div><div id="reopen-message" class="notice"></div></section></div>
+  <div id="review-modal" class="node-modal" hidden><div class="node-modal-backdrop" data-action="close-review"></div><section class="node-modal-card review-modal-card"><div class="inspector-title"><strong>大纲确认</strong><button class="small" data-action="close-review" type="button">关闭</button></div><p class="field-help">AI 已完成整本书的规划并通过一致性审查。请过目大纲后再开写；不满意可直接填写反馈让 AI 修订后再次确认。</p><div id="review-audit" class="review-audit" hidden></div><div id="review-outline" class="review-outline scroll"></div><label class="review-feedback-label">修订反馈（不满意时填写）<textarea id="review-feedback" rows="4" placeholder="例如：第 2 卷的转折太生硬，希望提前铺垫；主角动机改成复仇而不是误解"></textarea></label><div class="modal-actions"><button id="review-feedback-submit" class="secondary" type="button">提交反馈并重新生成</button><button id="review-confirm" type="button">确认大纲，开始写作</button></div><div id="review-message" class="notice"></div></section></div>
   <div id="import-dialog" class="import-dialog" hidden>
     <div class="import-dialog-backdrop" data-action="close-import"></div>
     <section class="import-dialog-panel" role="dialog" aria-labelledby="import-dialog-title">
@@ -277,14 +289,25 @@
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </div>
-  <script src="/static/app.js?v=image-browser-v2"></script>
+  <script src="/static/app-core.js?v=frontend-foundation-v1"></script>
+  <script src="/static/writing-state.js?v=writing-state-v1"></script>
+  <script src="/static/runtime-events.js?v=runtime-events-v3"></script>
+  <script src="/static/workspace.js?v=workspace-v1"></script>
+  <script src="/static/writing-commands.js?v=writing-commands-v1"></script>
+  <script src="/static/workbench-shell.js?v=workbench-shell-v4"></script>
+  <script src="/static/app.js?v=cache-rate-v2"></script>
+  <script src="/static/writing-view.js?v=writing-view-v2"></script>
   <script src="/static/image-generation.js?v=image-generation-v4"></script>
   <script src="/static/galgame.js?v=workspace-switch-v2"></script>
   <script src="/static/play.js?v=play-pacing-v2"></script>
   <script src="/static/model-settings.js"></script>
   <script src="/static/settings.js?v=settings-layout-v1"></script>
   <script src="/static/prompts.js"></script>
+  <script src="/static/comfyui-model.js?v=comfyui-model-v1"></script>
+  <script src="/static/comfyui-prompter.js?v=comfyui-prompter-v1"></script>
+  <script src="/static/comfyui-jobs.js?v=comfyui-jobs-v1"></script>
+  <script src="/static/comfyui-canvas.js?v=comfyui-canvas-v1"></script>
   <script src="/static/comfyui.js?v=image-generation-v2"></script>
-  <script src="/static/reader.js"></script>
+  <script src="/static/reader.js?v=reader-v3"></script>
 </body>
 </html>

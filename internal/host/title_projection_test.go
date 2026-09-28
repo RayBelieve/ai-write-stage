@@ -48,6 +48,22 @@ func TestFillDetailsUsesCommittedTitleOnlyForCompletedChapters(t *testing.T) {
 	}
 }
 
+func TestFillDetailsKeepsFullPremiseMarkdown(t *testing.T) {
+	s := store.NewStore(t.TempDir())
+	if err := s.Init(); err != nil {
+		t.Fatal(err)
+	}
+	premise := "# 青草\n\n## 题材和基调\n体育励志成长，以中国乡村足球为背景，描写底层少年凭借天赋与坚韧一步步走向国家队的真实路径。基调是粗粝而温暖的，扎根泥土但不苦情。"
+	if err := s.Outline.SavePremise(premise); err != nil {
+		t.Fatal(err)
+	}
+	var snapshot RuntimeSnapshot
+	(&Host{store: s}).fillDetails(&snapshot, nil)
+	if snapshot.Premise != premise {
+		t.Fatalf("premise = %q, want full markdown", snapshot.Premise)
+	}
+}
+
 func TestFillDetailsIncludesOutlineHookAndScenes(t *testing.T) {
 	s := store.NewStore(t.TempDir())
 	if err := s.Init(); err != nil {

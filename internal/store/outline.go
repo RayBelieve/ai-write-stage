@@ -477,6 +477,27 @@ func (s *OutlineStore) LoadFoundationAudit() (*domain.FoundationAudit, error) {
 	return &a, nil
 }
 
+// SaveOutlineConfirmation 落用户对当前版本规划产物的确认工件（覆盖写；
+// 之后任何设定落盘都会改变指纹，使本确认失效并重新触发确认门）。
+func (s *OutlineStore) SaveOutlineConfirmation(c domain.OutlineConfirmation) error {
+	if strings.TrimSpace(c.Fingerprint) == "" {
+		return fmt.Errorf("fingerprint is required")
+	}
+	return s.io.WriteJSON("meta/outline_confirmation.json", c)
+}
+
+// LoadOutlineConfirmation 读取最近一次用户确认；不存在时返回 nil。
+func (s *OutlineStore) LoadOutlineConfirmation() (*domain.OutlineConfirmation, error) {
+	var c domain.OutlineConfirmation
+	if err := s.io.ReadJSON("meta/outline_confirmation.json", &c); err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &c, nil
+}
+
 func renderLayeredOutline(volumes []domain.VolumeOutline) string {
 	var b strings.Builder
 	b.WriteString("# 分层大纲\n\n")

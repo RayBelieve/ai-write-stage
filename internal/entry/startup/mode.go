@@ -12,8 +12,6 @@ type Mode string
 const (
 	// ModeQuick 直接以用户输入作为创作起点。
 	ModeQuick Mode = "quick"
-	// ModeCoCreate 先做多轮澄清，再产出创作草稿进入 Engine。
-	ModeCoCreate Mode = "cocreate"
 	// ModeContinueFromNovel 基于已有小说内容装配上下文后续写。
 	ModeContinueFromNovel Mode = "continue_from_novel"
 )

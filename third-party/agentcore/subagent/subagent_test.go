@@ -121,6 +121,40 @@ func TestTool_Single(t *testing.T) {
 	}
 }
 
+func TestRunWithInitialPromptKeepsTaskContract(t *testing.T) {
+	var gotRequest *agentcore.LLMRequest
+	var gotTask string
+	model := newSequential(func(_ int, req *agentcore.LLMRequest) (*agentcore.LLMResponse, error) {
+		gotRequest = req
+		return &agentcore.LLMResponse{Message: agentcore.Message{
+			Role:       agentcore.RoleAssistant,
+			Content:    []agentcore.ContentBlock{agentcore.TextBlock("ok")},
+			StopReason: agentcore.StopReasonStop,
+		}}, nil
+	})
+	runner := NewRunner(Config{
+		Name:        "writer",
+		Description: "writer",
+		Model:       model,
+		MaxTurns:    1,
+		OnMessage: func(_, task string, _ agentcore.AgentMessage) {
+			gotTask = task
+		},
+	})
+	if _, err := runner.RunWithInitialPrompt(context.Background(), "writer", "stable-book-context", "写第 1 章"); err != nil {
+		t.Fatal(err)
+	}
+	if gotRequest == nil || len(gotRequest.Messages) != 1 {
+		t.Fatalf("expected one initial message, got %#v", gotRequest)
+	}
+	if got := gotRequest.Messages[0].TextContent(); !strings.Contains(got, "stable-book-context") || !strings.Contains(got, "写第 1 章") {
+		t.Fatalf("initial prompt missing prefix or task: %q", got)
+	}
+	if gotTask != "写第 1 章" {
+		t.Fatalf("callback task changed: %q", gotTask)
+	}
+}
+
 func TestRunner_Run(t *testing.T) {
 	runner := NewRunner(simpleAgent("writer", "hello"))
 	result, err := runner.Run(context.Background(), "writer", "greet")

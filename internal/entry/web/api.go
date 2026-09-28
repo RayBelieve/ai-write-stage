@@ -188,6 +188,12 @@ func (c *v2Controller) dispatch(w http.ResponseWriter, r *http.Request) {
 		c.importResolve(w, r)
 	case p == "import/cancel":
 		c.importCancel(w, r)
+	case p == "outline/review" && r.Method == http.MethodGet:
+		c.outlineReview(w, r)
+	case p == "outline/confirm" && r.Method == http.MethodPost:
+		c.outlineConfirm(w, r)
+	case p == "outline/feedback" && r.Method == http.MethodPost:
+		c.outlineFeedback(w, r)
 	case strings.HasPrefix(p, "commands/"):
 		c.command(w, r, strings.TrimPrefix(p, "commands/"))
 	default:

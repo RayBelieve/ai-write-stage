@@ -27,9 +27,9 @@ type promptPresetDocument struct {
 }
 
 // LoadPromptOverrides reads the active prompt preset saved by the web
-// workbench. A missing file is a normal first-run condition and returns nil.
-// Invalid files are returned as errors so callers can report the problem and
-// continue with the embedded defaults.
+// workbench (meta/web/prompts.json). A missing file is a normal first-run
+// condition and returns nil. Invalid files are returned as errors so callers
+// can report the problem and continue with the embedded defaults.
 func LoadPromptOverrides(outputDir string) (map[string]string, error) {
 	if strings.TrimSpace(outputDir) == "" {
 		return nil, nil
@@ -46,20 +46,10 @@ func LoadPromptOverrides(outputDir string) (map[string]string, error) {
 	if err := json.Unmarshal(data, &doc); err != nil {
 		return nil, err
 	}
-	// Version 1 was a flat {"prompts":{...}} document. Treat it as the
-	// active values for backwards compatibility; v2 selects the named preset.
-	if doc.Version < 2 || len(doc.Presets) == 0 {
-		return clonePromptMap(doc.Prompts), nil
+	if preset, ok := doc.Presets[doc.ActivePreset]; ok && len(preset.Prompts) > 0 {
+		return clonePromptMap(preset.Prompts), nil
 	}
-	active := doc.ActivePreset
-	preset, ok := doc.Presets[active]
-	if !ok {
-		return clonePromptMap(doc.Prompts), nil
-	}
-	if len(preset.Prompts) == 0 {
-		return clonePromptMap(doc.Prompts), nil
-	}
-	return clonePromptMap(preset.Prompts), nil
+	return clonePromptMap(doc.Prompts), nil
 }
 
 func clonePromptMap(in map[string]string) map[string]string {
@@ -77,6 +67,8 @@ func clonePromptMap(in map[string]string) map[string]string {
 // bundle. The bundle is a startup snapshot: saving a preset in the running
 // web UI takes effect on the next process restart, avoiding races with active
 // subagents and prompt-cache keys.
+//
+// 覆盖只作用于创作段（Creative*），协议段固化不可触碰。
 func ApplyPromptOverrides(bundle *Bundle, values map[string]string) {
 	if bundle == nil {
 		return
@@ -90,20 +82,11 @@ func ApplyPromptOverrides(bundle *Bundle, values map[string]string) {
 		case "architect":
 			// The UI exposes one architect prompt while the runtime has short
 			// and long planning workers. Keep them in sync.
-			bundle.Prompts.ArchitectShort = value
-			bundle.Prompts.ArchitectLong = value
-		case "architect_short":
-			bundle.Prompts.ArchitectShort = value
-		case "architect_long":
-			bundle.Prompts.ArchitectLong = value
+			bundle.Prompts.CreativeArchitect = value
 		case "chapter_planner":
-			bundle.Prompts.ChapterPlanner = value
+			bundle.Prompts.CreativeChapterPlanner = value
 		case "writer":
-			bundle.Prompts.Writer = value
-		case "editor":
-			bundle.Prompts.Editor = value
-		case "prompter":
-			bundle.Prompts.Prompter = value
+			bundle.Prompts.CreativeWriter = value
 		}
 	}
 }
@@ -121,6 +104,10 @@ var stylesFS embed.FS
 var voiceFS embed.FS
 
 // Prompts 表示嵌入的提示词集合。
+//
+// 核心角色的 system prompt = 协议段（工具调用与结构契约，固化）+ 创作段
+// （Creative*，用户可在 Web 提示词页编辑）。协议段保证工具调用链路稳定，
+// 永远不被 Web 覆盖；覆盖只作用于创作段。
 type Prompts struct {
 	ArchitectShort    string
 	ArchitectLong     string
@@ -135,6 +122,13 @@ type Prompts struct {
 	ImportRange       string // 长书 Map 阶段连续区间摘要（RangeDigest）
 	SimulationSource  string
 	SimulationMerge   string
+
+	// 创作段：质量标准与审美判据，Web 提示词页唯一可编辑的部分。
+	// CreativeArchitect 由短篇/长篇规划师共用。
+	CreativeArchitect      string
+	CreativeChapterPlanner string
+	CreativeWriter         string
+	CreativeEditor         string
 
 	// Arbiter 裁定提示词(LLM-as-function,无 simulation guidance 包装)。
 	ArbiterPlanStart    string
@@ -294,6 +288,13 @@ func loadPrompts() Prompts {
 		SimulationSource:  mustRead(promptsFS, "prompts/simulation-source.md"),
 		SimulationMerge:   mustRead(promptsFS, "prompts/simulation-merge.md"),
 
+		// 创作段不带 simulation guidance：guidance 属于协议（读取 simulation_profile
+		// 的数据契约），随协议段固化；创作段由 build 装配时追加在协议之后。
+		CreativeArchitect:      mustRead(promptsFS, "prompts/architect-creative.md"),
+		CreativeChapterPlanner: mustRead(promptsFS, "prompts/chapter-planner-creative.md"),
+		CreativeWriter:         mustRead(promptsFS, "prompts/writer-creative.md"),
+		CreativeEditor:         mustRead(promptsFS, "prompts/editor-creative.md"),
+
 		ArbiterPlanStart:    mustRead(promptsFS, "prompts/arbiter-plan-start.md"),
 		ArbiterIntervention: mustRead(promptsFS, "prompts/arbiter-intervention.md"),
 		ArbiterFailure:      mustRead(promptsFS, "prompts/arbiter-failure.md"),
@@ -305,6 +306,16 @@ func loadPrompts() Prompts {
 		PlayRevise:    mustRead(promptsFS, "prompts/play-revise.md"),
 		PlayReplan:    mustRead(promptsFS, "prompts/play-replan.md"),
 	}
+}
+
+// ComposeSystemPrompt 把协议段与创作段拼成完整 system prompt，是核心角色
+// 装配的唯一入口（生产 / 测试共用）。creative 为空时返回协议原文。
+func ComposeSystemPrompt(protocol, creative string) string {
+	creative = strings.TrimSpace(creative)
+	if creative == "" {
+		return protocol
+	}
+	return protocol + "\n\n" + creative
 }
 
 // WithSimulationGuidance 给核心 prompt 追加仿写画像指引。导出供 eval 等外部场景做

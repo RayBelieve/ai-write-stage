@@ -16,8 +16,8 @@ import (
 	"github.com/voocel/agentcore"
 )
 
-// recentSampleCap 是滑动窗大小：只保留每个 role 最近 N 次调用的 (cacheRead, input)
-// 样本，用于在左栏对比"累计 vs 近 N 次"命中率，识别"前期拖累"vs"稳态低命中"。
+// recentSampleCap 是滑动窗大小：只保留每个 role/model 最近 N 次调用的
+// (cacheRead, input) 样本，用于在左栏对比"累计 vs 近 N 次"命中率。
 const recentSampleCap = 10
 
 // 缓存链断裂判定双阈值（对齐 Claude Code 的实证经验）：命中量较上次下降超过
@@ -682,15 +682,19 @@ func (t *UsageTracker) PerModel() []AgentUsage {
 		if v.Input == 0 && v.Output == 0 {
 			continue
 		}
+		recentRead, recentInput := recentSums(v)
 		out = append(out, AgentUsage{
-			Model:        model,
-			Input:        v.Input,
-			Output:       v.Output,
-			CacheRead:    v.CacheRead,
-			CacheWrite:   v.CacheWrite,
-			Cost:         v.Cost,
-			Saved:        v.Saved,
-			CacheCapable: v.CacheCapable,
+			Model:           model,
+			Input:           v.Input,
+			Output:          v.Output,
+			CacheRead:       v.CacheRead,
+			CacheWrite:      v.CacheWrite,
+			Cost:            v.Cost,
+			Saved:           v.Saved,
+			CacheCapable:    v.CacheCapable,
+			RecentCacheRead: recentRead,
+			RecentInput:     recentInput,
+			RecentSamples:   len(v.samples),
 		})
 	}
 	sort.Slice(out, func(i, j int) bool {

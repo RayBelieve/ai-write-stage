@@ -180,6 +180,8 @@ func isKnownBookAPI(p string) bool {
 		return true
 	case strings.HasPrefix(p, "import/"):
 		return true
+	case strings.HasPrefix(p, "outline/"):
+		return true
 	case strings.HasPrefix(p, "settings/"):
 		return true
 	case strings.HasPrefix(p, "galgame/"):

@@ -11,6 +11,16 @@ import (
 	"github.com/Leixx98/ai-write-stage/internal/store"
 )
 
+// newFlagTestHost 造一个最小 Host，只够驱动生命周期/并发守卫类单测。
+// emitEvent 使用非阻塞通道，缓冲 events 即可，无需 observer。
+func newFlagTestHost(lc lifecycle) *Host {
+	return &Host{
+		lifecycle: lc,
+		engine:    &engine{}, // acquireExclusive 查 engine.isRunning()（停止窗口门禁）
+		events:    make(chan Event, 16),
+	}
+}
+
 func newPlayHost(t *testing.T) *Host {
 	t.Helper()
 	dir := t.TempDir()
@@ -18,7 +28,7 @@ func newPlayHost(t *testing.T) *Host {
 	if err := roots.Facts.Init(); err != nil {
 		t.Fatal(err)
 	}
-	h := newFlagTestHost(lifecycleIdle, false)
+	h := newFlagTestHost(lifecycleIdle)
 	h.roots = roots
 	h.store = roots.Facts
 	h.runCtx = context.Background()

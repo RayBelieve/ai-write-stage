@@ -73,11 +73,32 @@ func TestAuditFoundationControlsWritingTransition(t *testing.T) {
 		"summary":     "基础设定一致",
 		"issues":      []any{},
 	})
-	if _, err := tool.Execute(context.Background(), passed); err != nil {
+	result, err := tool.Execute(context.Background(), passed)
+	if err != nil {
 		t.Fatalf("passed audit: %v", err)
 	}
-	if p, _ := s.Progress.Load(); p.Phase != domain.PhaseWriting {
-		t.Fatalf("passed audit must enter writing, got %s", p.Phase)
+	// 新语义：审查通过不再直接推 writing，规划产物停在规划期等待用户确认门。
+	if p, _ := s.Progress.Load(); p.Phase == domain.PhaseWriting {
+		t.Fatal("passed audit must not enter writing; user confirmation gate decides the transition")
+	}
+	var payload struct {
+		AwaitingConfirmation bool `json:"awaiting_confirmation"`
+	}
+	if err := json.Unmarshal(result, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if !payload.AwaitingConfirmation {
+		t.Fatal("passed audit should report awaiting_confirmation")
+	}
+	if missing, err := s.FoundationMissing(); err != nil || len(missing) != 0 {
+		t.Fatalf("audit ready should clear foundation missing, got %v, err=%v", missing, err)
+	}
+	review, err := s.FoundationReview()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !review.Awaiting {
+		t.Fatal("review gate should be awaiting user confirmation after passed audit")
 	}
 }
 

@@ -46,18 +46,22 @@ func (s *ComfyUIStore) LoadInstances() ([]comfyui.Instance, comfyui.InstanceSett
 		Settings  comfyui.InstanceSettings `json:"settings"`
 	}
 	data, err := s.io.ReadFile(s.instancesPath())
-	if os.IsNotExist(err) {
-		d := comfyui.DefaultInstance()
-		return []comfyui.Instance{d}, comfyui.DefaultInstanceSettings(), nil
-	}
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return nil, comfyui.InstanceSettings{}, err
 	}
-	if err := json.Unmarshal(data, &doc); err != nil {
-		return nil, comfyui.InstanceSettings{}, err
+	if err == nil {
+		if err := json.Unmarshal(data, &doc); err != nil {
+			return nil, comfyui.InstanceSettings{}, err
+		}
 	}
 	if len(doc.Instances) == 0 {
-		doc.Instances = []comfyui.Instance{comfyui.DefaultInstance()}
+		config, err := s.LoadConfig()
+		if err != nil {
+			return nil, comfyui.InstanceSettings{}, err
+		}
+		instance := comfyui.DefaultInstance()
+		instance.BaseURL = config.BaseURL
+		doc.Instances = []comfyui.Instance{instance}
 	}
 	for n := range doc.Instances {
 		doc.Instances[n] = comfyui.NormalizeInstance(doc.Instances[n])

@@ -139,13 +139,12 @@ type workflowSettingsDocument struct {
 }
 
 func defaultPromptValues() map[string]string {
+	// 创作段默认值；协议段固化在 assets/prompts，不经 Web 覆盖。
 	bundle := assets.Load("default", assets.LoadOptions{})
 	return map[string]string{
-		"architect":       bundle.Prompts.ArchitectShort,
-		"chapter_planner": bundle.Prompts.ChapterPlanner,
-		"writer":          bundle.Prompts.Writer,
-		"editor":          bundle.Prompts.Editor,
-		"prompter":        bundle.Prompts.Prompter,
+		"architect":       bundle.Prompts.CreativeArchitect,
+		"chapter_planner": bundle.Prompts.CreativeChapterPlanner,
+		"writer":          bundle.Prompts.CreativeWriter,
 	}
 }
 
@@ -187,20 +186,11 @@ func (c *v2Controller) loadPromptPresets() (promptPresetDocument, bool, error) {
 	var raw map[string]any
 	err := c.loadSettings("prompts", &raw)
 	if os.IsNotExist(err) {
-		doc := promptPresetDocument{Version: 2, ActivePreset: defaultPromptPreset, Presets: map[string]promptPreset{defaultPromptPreset: {Name: defaultPromptPreset, Prompts: defaults}}, Prompts: clonePrompts(defaults)}
+		doc := promptPresetDocument{Version: 3, ActivePreset: defaultPromptPreset, Presets: map[string]promptPreset{defaultPromptPreset: {Name: defaultPromptPreset, Prompts: defaults}}, Prompts: clonePrompts(defaults)}
 		return doc, true, nil
 	}
 	if err != nil {
 		return promptPresetDocument{}, false, err
-	}
-	version, _ := raw["version"].(float64)
-	if version < 2 {
-		legacy := stringMap(raw["prompts"])
-		prompts := mergePrompts(defaults, legacy)
-		doc := promptPresetDocument{Version: 2, ActivePreset: defaultPromptPreset, Presets: map[string]promptPreset{defaultPromptPreset: {Name: defaultPromptPreset, Prompts: prompts}}, Prompts: clonePrompts(prompts)}
-		// Persist the migrated document on the next GET so an old empty or
-		// flat prompts.json is upgraded to the preset format immediately.
-		return doc, true, nil
 	}
 	b, _ := json.Marshal(raw)
 	var doc promptPresetDocument
@@ -228,6 +218,24 @@ func stringMap(v any) map[string]string {
 	if m, ok := v.(map[string]any); ok {
 		for k, value := range m {
 			out[k] = fmt.Sprint(value)
+		}
+	}
+	return out
+}
+
+// allowedPromptKeys 是 v3 文档允许持久化的创作段 key，与 Web 提示词页的
+// 编辑框一一对应；协议段与退役角色（editor）不再入库。
+var allowedPromptKeys = map[string]bool{
+	"architect":       true,
+	"chapter_planner": true,
+	"writer":          true,
+}
+
+func filterPromptKeys(in map[string]string) map[string]string {
+	out := map[string]string{}
+	for k, v := range in {
+		if allowedPromptKeys[k] {
+			out[k] = v
 		}
 	}
 	return out
@@ -290,13 +298,13 @@ func (c *v2Controller) promptPresets(w http.ResponseWriter, r *http.Request) {
 		if preset, ok := doc.Presets[source]; ok {
 			base = preset.Prompts
 		}
-		prompts := mergePrompts(base, stringMap(req["prompts"]))
+		prompts := filterPromptKeys(mergePrompts(base, stringMap(req["prompts"])))
 		doc.Presets[name] = promptPreset{Name: name, Prompts: prompts, UpdatedAt: time.Now().UTC().Format(time.RFC3339)}
 	default:
 		envelopeErr(w, 400, codeInvalidRequest, fmt.Errorf("unsupported prompt preset operation"))
 		return
 	}
-	doc.Version = 2
+	doc.Version = 3
 	doc.ActivePreset = name
 	doc.Prompts = clonePrompts(doc.Presets[name].Prompts)
 	if err := c.saveSettingsValue("prompts", doc); err != nil {

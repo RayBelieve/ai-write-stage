@@ -107,22 +107,18 @@ func (a *Adapter) Execute(ctx context.Context, request imagejob.ProviderRequest,
 	}
 	promptRequest := scenePromptRequest(request.SceneRequest, schemaJSON, schema)
 	promptCtx, cancel := context.WithTimeout(ctx, time.Duration(profile.TimeoutMS)*time.Millisecond)
-	raw, err := a.prompter.Generate(promptCtx, promptRequest)
+	providerConfig, err := a.store.LoadConfig()
+	if err != nil {
+		cancel()
+		return nil, fmt.Errorf("load ComfyUI config: %w", err)
+	}
+	raw, parsed, err := generateAndValidatePrompt(promptCtx, a.prompter, promptRequest, schema, providerConfig.Strict, reporter)
 	timedOut := errors.Is(promptCtx.Err(), context.DeadlineExceeded)
 	cancel()
 	if err != nil {
 		if timedOut {
 			return nil, errors.New("image prompt generation timed out")
 		}
-		return nil, err
-	}
-	reporter.Stage("validating", "validating")
-	providerConfig, err := a.store.LoadConfig()
-	if err != nil {
-		return nil, fmt.Errorf("load ComfyUI config: %w", err)
-	}
-	parsed, err := imagejob.ParseAndValidate(raw, schema, providerConfig.Strict)
-	if err != nil {
 		return nil, err
 	}
 	reporter.Prompt(raw, parsed.Values)
@@ -211,6 +207,27 @@ func (a *Adapter) Execute(ctx context.Context, request imagejob.ProviderRequest,
 		generated = append(generated, service.GeneratedOutput{Media: media, Data: downloaded.Data})
 	}
 	return generated, nil
+}
+
+func generateAndValidatePrompt(ctx context.Context, prompter imagejob.Prompter, request imagejob.PromptRequest, schema imagejob.PromptSchema, strict bool, reporter service.Reporter) (string, imagejob.ParseResult, error) {
+	for attempt := 0; attempt < 2; attempt++ {
+		raw, err := prompter.Generate(ctx, request)
+		if err != nil {
+			return "", imagejob.ParseResult{}, err
+		}
+		reporter.Stage("validating", "validating")
+		parsed, err := imagejob.ParseAndValidate(raw, schema, strict)
+		reporter.Prompt(raw, nil)
+		if err == nil {
+			return raw, parsed, nil
+		}
+		if attempt == 1 || ctx.Err() != nil {
+			return raw, parsed, err
+		}
+		request.SystemPrompt += "\n\n上次输出未通过 JSON 校验（" + err.Error() + "）。请重新生成，只输出一个完整 JSON object，严格使用指定字段名和类型，不要添加说明。"
+		reporter.Stage("prompting", "prompting")
+	}
+	return "", imagejob.ParseResult{}, errors.New("image prompt generation failed")
 }
 
 func (a *Adapter) Cancel(ctx context.Context, externalID string) error {

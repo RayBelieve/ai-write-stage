@@ -1,4 +1,4 @@
-/* Writing-prompt presets for architect / planner / writer / editor. */
+/* Creative-requirement presets for architect / planner / writer. */
 (() => {
   let promptPresetDoc = null;
   let promptsDirty = false;
@@ -6,7 +6,7 @@
     try {
       promptPresetDoc = await api('/api/v2/settings/prompts');
       const prompts = promptPresetDoc.prompts || {};
-      const labels = { architect: '架构师', chapter_planner: '章节规划师', writer: '写作者', editor: '编辑' };
+      const labels = { architect: '架构师 · 规划创作要求', chapter_planner: '章节规划师 · 计划创作要求', writer: '写作者 · 写作纪律' };
       $('prompt-editors').innerHTML = Object.keys(labels).map((role) => `<label>${labels[role]}<textarea data-prompt="${role}" rows="7">${esc(prompts[role] || '')}</textarea></label>`).join('');
       $('prompt-editors').querySelectorAll('textarea').forEach((field) => field.addEventListener('input', () => { promptsDirty = true; }));
       renderPromptPresetOptions();

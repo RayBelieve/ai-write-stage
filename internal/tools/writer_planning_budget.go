@@ -4,6 +4,12 @@ import "fmt"
 
 // WriterPlanningBudget bounds the part of a chapter plan projected into one
 // local Writer request. Smaller context windows require shorter, denser cards.
+//
+// 字数档位的取向：unit 是 Writer 单次生成的完整叙事片段，过小（300 字级）
+// 会逼 Writer 一句一拍地赶 required_beats，全书退化为短句平铺。下限 500 字
+// 保证每个 beat 有铺陈空间；上限按窗口对应的输出预算倒推（预算见
+// writerOutputTokenLimit：8K 档 ≈1800 tokens、16K 档 ≈2400、大窗口 ≈6000），
+// 留足 JSON 包装与重试余量。
 type WriterPlanningBudget struct {
 	ContextWindow            int
 	MinUnitChars             int
@@ -24,12 +30,13 @@ type WriterPlanningBudget struct {
 func WriterPlanningBudgetForContext(window int) WriterPlanningBudget {
 	budget := WriterPlanningBudget{
 		ContextWindow: window,
-		MinUnitChars:  200,
-		MaxUnitChars:  1000,
+		MinUnitChars:  500,
+		MaxUnitChars:  2000,
 	}
 	switch {
 	case window > 0 && window <= 8192:
-		budget.MaxRequiredBeats = 5
+		budget.MaxUnitChars = 1200
+		budget.MaxRequiredBeats = 3
 		budget.MaxUnitForbiddenMoves = 5
 		budget.MaxChapterListItems = 6
 		budget.MaxChapterForbiddenMoves = 4
@@ -38,7 +45,8 @@ func WriterPlanningBudgetForContext(window int) WriterPlanningBudget {
 		budget.MaxSceneFieldRunes = 120
 		budget.MaxUnitFieldRunes = 100
 	case window > 0 && window <= 16384:
-		budget.MaxRequiredBeats = 6
+		budget.MaxUnitChars = 1600
+		budget.MaxRequiredBeats = 3
 		budget.MaxUnitForbiddenMoves = 6
 		budget.MaxChapterListItems = 8
 		budget.MaxChapterForbiddenMoves = 6
@@ -57,7 +65,7 @@ func (b WriterPlanningBudget) Instruction() string {
 		return fmt.Sprintf("Writer 当前采用大窗口档位；每个 unit 可在 %d-%d 字内按情节密度动态规划，仍应使用简洁、可执行的场景卡。", b.MinUnitChars, b.MaxUnitChars)
 	}
 	return fmt.Sprintf(
-		"Writer 上下文窗口为 %d tokens。为保证本地模型可执行：每个 unit 可在 %d-%d 字内按实际情节密度动态规划，低密度承接/过渡通常 200-400 字，高密度冲突/转折通常 800-1000 字，中等密度取其间；不得把所有 unit 机械设为同一字数。required_beats 最多 %d 项；unit forbidden_moves 最多 %d 项；每个条目最多 %d 字；场景状态/冲突/转折等字段最多 %d 字；end_anchor/transition 最多 %d 字；creative_freedom 最多 %d 项；本章 forbidden_moves 最多 %d 项。不得用增加字段长度代替拆分 unit。",
+		"Writer 上下文窗口为 %d tokens。为保证本地模型可执行并给正文留出铺陈空间：每个 unit 可在 %d-%d 字内按实际情节密度动态规划，低密度承接/过渡通常 500-800 字，中等密度推进通常 800-1400 字，高密度冲突/转折通常 1400-2000 字；不得把所有 unit 机械设为同一字数。required_beats 每个最多 %d 项，且一个 beat 是一个完整叙事动作（含人物反应与余波），不是一句话事件——宁可少列，让 Writer 把每个动作写足；unit forbidden_moves 最多 %d 项；每个条目最多 %d 字；场景状态/冲突/转折等字段最多 %d 字；end_anchor/transition 最多 %d 字；creative_freedom 最多 %d 项；本章 forbidden_moves 最多 %d 项。全章通常 3-5 个 unit；不得用增加字段长度代替拆分 unit。",
 		b.ContextWindow, b.MinUnitChars, b.MaxUnitChars, b.MaxRequiredBeats,
 		b.MaxUnitForbiddenMoves, b.MaxItemRunes, b.MaxSceneFieldRunes,
 		b.MaxUnitFieldRunes, b.MaxCreativeFreedom, b.MaxChapterForbiddenMoves,

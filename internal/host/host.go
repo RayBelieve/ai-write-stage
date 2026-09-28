@@ -61,10 +61,9 @@ type Host struct {
 	done     chan struct{}
 	closed   chan struct{}
 
-	mu         sync.Mutex
-	lifecycle  lifecycle
-	cocreating bool   // Prevents conflicting operations during a paused co-creation session.
-	exclusive  string // 后台独占作业占用（导入/仿写）：非空表示某作业在跑，堵住并发独占入口
+	mu        sync.Mutex
+	lifecycle lifecycle
+	exclusive string // 后台独占作业占用（导入/仿写）：非空表示某作业在跑，堵住并发独占入口
 	// exclusiveCancel 是当前独占作业的取消函数：预算硬停/手动暂停须能停掉正在烧钱的
 	// 导入，而不仅是 Engine——abortWithEvent 在 Engine 未运行时取消它（预算哨兵的
 	// abort 回调与手动 Abort 共用同一停机机制）。releaseExclusive 一并清空。
@@ -335,7 +334,7 @@ func New(cfg bootstrap.Config, bundle assets.Bundle, options ...NewOption) (*Hos
 // PrepareUserRules 在新建模式下生成本书用户规则快照（启动侧确定性，不进主创作 Run）。
 //
 // 入参是用户的**原始**创作要求（未经 BuildStartPrompt 包装）——归一化要的是用户规则本身，
-// 不是启动脚手架。入口须在 StartPrepared 之前调用一次（quick/cocreate 两条新建路径都走这里）。
+// 不是启动脚手架。入口须在 StartPrepared 之前调用一次（quick 新建路径走这里）。
 //
 // 归一化失败只降级不报错（增强路径）；只有快照无法落盘才返回 error 中止开书——
 // 后续运行将没有稳定事实源（见设计 §失败与降级）。
@@ -392,10 +391,6 @@ func (h *Host) StartPrepared(rawRequirement string) error {
 	if h.lifecycle == lifecycleRunning {
 		h.mu.Unlock()
 		return fmt.Errorf("already running")
-	}
-	if h.cocreating {
-		h.mu.Unlock()
-		return fmt.Errorf("阶段共创进行中，请先结束共创")
 	}
 	h.mu.Unlock()
 	if err := h.playActiveError(); err != nil {
@@ -543,9 +538,6 @@ func (h *Host) Reopen(direction string) error {
 	case h.lifecycle == lifecycleRunning:
 		h.mu.Unlock()
 		return fmt.Errorf("创作引擎运行中，无需重开")
-	case h.cocreating:
-		h.mu.Unlock()
-		return fmt.Errorf("阶段共创进行中，请先结束共创")
 	case h.exclusive != "":
 		ex := h.exclusive
 		h.mu.Unlock()
@@ -575,10 +567,6 @@ func (h *Host) Resume() (string, error) {
 	if h.lifecycle == lifecycleRunning {
 		h.mu.Unlock()
 		return "", fmt.Errorf("already running")
-	}
-	if h.cocreating {
-		h.mu.Unlock()
-		return "", fmt.Errorf("阶段共创进行中，请先结束共创")
 	}
 	if h.exclusive != "" {
 		ex := h.exclusive
@@ -792,10 +780,6 @@ func (h *Host) Continue(text string) error {
 		return fmt.Errorf("text is required")
 	}
 	h.mu.Lock()
-	if h.cocreating {
-		h.mu.Unlock()
-		return fmt.Errorf("阶段共创进行中，请先结束共创")
-	}
 	if h.exclusive != "" {
 		ex := h.exclusive
 		h.mu.Unlock()
@@ -849,13 +833,10 @@ func (h *Host) AdvanceOneChapter() error {
 	defer h.interMu.Unlock()
 
 	h.mu.Lock()
-	running, cocreating, ex := h.lifecycle == lifecycleRunning, h.cocreating, h.exclusive
+	running, ex := h.lifecycle == lifecycleRunning, h.exclusive
 	h.mu.Unlock()
 	if running || h.engine.isRunning() {
 		return fmt.Errorf("创作仍在运行或正在完成暂停，请稍后再放行下一章")
-	}
-	if cocreating {
-		return fmt.Errorf("阶段共创进行中，请先结束共创")
 	}
 	if ex != "" {
 		return fmt.Errorf("%s进行中，请先完成后再放行下一章", ex)
@@ -1208,14 +1189,17 @@ func (h *Host) Snapshot() RuntimeSnapshot {
 	modelStats := make([]AgentCacheStat, 0, len(perModel))
 	for _, a := range perModel {
 		modelStats = append(modelStats, AgentCacheStat{
-			Model:        a.Model,
-			Input:        a.Input,
-			Output:       a.Output,
-			CacheRead:    a.CacheRead,
-			CacheWrite:   a.CacheWrite,
-			Cost:         a.Cost,
-			Saved:        a.Saved,
-			CacheCapable: a.CacheCapable,
+			Model:           a.Model,
+			Input:           a.Input,
+			Output:          a.Output,
+			CacheRead:       a.CacheRead,
+			CacheWrite:      a.CacheWrite,
+			Cost:            a.Cost,
+			Saved:           a.Saved,
+			CacheCapable:    a.CacheCapable,
+			RecentCacheRead: a.RecentCacheRead,
+			RecentInput:     a.RecentInput,
+			RecentSamples:   a.RecentSamples,
 		})
 	}
 
@@ -1288,6 +1272,12 @@ func (h *Host) Snapshot() RuntimeSnapshot {
 		snap.RecoveryLabel = label
 	}
 
+	// 大纲确认门状态（读取失败静默降级为无门，不阻塞快照）
+	if review, err := h.store.FoundationReview(); err == nil && review != nil {
+		snap.OutlineReviewPending = review.Awaiting
+		snap.OutlineReviewSummary = review.AuditSummary
+	}
+
 	h.fillDetails(&snap, progress)
 
 	return snap
@@ -1345,7 +1335,7 @@ func (h *Host) fillContextStatus(snap *RuntimeSnapshot) {
 // fillDetails 填充详情区:设定、角色、最近 commit/review/摘要。
 func (h *Host) fillDetails(snap *RuntimeSnapshot, progress *domain.Progress) {
 	if premise, _ := h.store.Outline.LoadPremise(); premise != "" {
-		snap.Premise = truncate(premise, 80)
+		snap.Premise = premise
 	}
 	if outline, _ := h.store.Outline.LoadOutline(); len(outline) > 0 {
 		completed := make(map[int]struct{})
@@ -1666,89 +1656,6 @@ func (h *Host) ReplayQueue(afterSeq int64) ([]domain.RuntimeQueueItem, error) {
 	return h.store.Runtime.LoadQueueAfter(afterSeq)
 }
 
-// ── 共创 ──
-
-// CoCreateStream 冷启动共创：从零澄清需求，产出整本书的创作指令。
-func (h *Host) CoCreateStream(ctx context.Context, history []CoCreateMessage, onProgress func(kind, text string)) (CoCreateReply, error) {
-	return coCreateStream(ctx, h.models, h.store.Sessions, coCreateSystemPrompt, history, onProgress)
-}
-
-// StageCoCreateStream 阶段共创：在已写内容的基础上规划后续方向。
-// 系统提示 = 阶段 prompt + 当前故事状态摘要，让助手知道"已经写了什么"。
-func (h *Host) StageCoCreateStream(ctx context.Context, history []CoCreateMessage, onProgress func(kind, text string)) (CoCreateReply, error) {
-	return coCreateStream(ctx, h.models, h.store.Sessions, stageSystemPrompt(h.store), history, onProgress)
-}
-
-// stagePlanPrefix 把共创产出的"后续方向 brief"包装成一条阶段规划干预，交 Arbiter 裁定。
-// 只贴 [阶段规划] 事实标记 + 中性陈述，不写死"怎么落地"——具体路由（compass / architect /
-// user_rules）交给 arbiter-intervention.md 的「阶段规划」判据，避免与 prompt 形成第二真相源、
-// 也不堵死风格类要求走 user_rules（守"分类裁定归 LLM"）。Continue 再叠加 [用户干预] 前缀。
-const stagePlanPrefix = "[阶段规划] 我暂停创作，和共创助手一起梳理了下面的后续方向，请按你的干预分类裁定如何落地，然后继续创作。后续方向如下：\n\n"
-
-// PauseForCoCreate 进入阶段共创：置共创占用标记，运行中则一并暂停 Engine。
-// 返回 false 表示无法进入（全书已完成或已在共创中），调用方忽略即可。
-// The occupancy flag blocks conflicting import, simulation, start, resume, and continue operations during co-creation.
-// 运行中暂停后 lifecycle=paused，现有 ==running 互斥失效，靠该标记补缺；
-// 已停止（idle/paused）也允许进入，规划完经 Continue 续跑。
-func (h *Host) PauseForCoCreate() bool {
-	h.mu.Lock()
-	if h.cocreating || h.lifecycle == lifecycleCompleted {
-		h.mu.Unlock()
-		return false
-	}
-	h.cocreating = true
-	running := h.lifecycle == lifecycleRunning
-	h.mu.Unlock()
-
-	// 运行中复用 abortWithEvent 停机（running→paused + setAborting + Abort + 事件），与手动
-	// 暂停同序、不另抄一遍；已停止（idle/paused）只置标记，规划完经 Continue 续跑。
-	if running {
-		h.abortWithEvent("进入阶段共创，创作已暂停", "info")
-	} else {
-		h.emitEvent(Event{Time: time.Now(), Category: "SYSTEM", Summary: "进入阶段共创", Level: "info"})
-	}
-	return true
-}
-
-// ResumeFromCoCreate 结束阶段共创：把共创产出的后续方向作为干预注入并恢复创作。
-// 清占用标记后复用 Continue 的停机注入路径（受预算前置约束）。
-// An empty draft intentionally returns before clearing the flag because co-creation is unfinished.
-// Clients must apply the same non-empty guard before calling this method.
-func (h *Host) ResumeFromCoCreate(draft string) error {
-	draft = strings.TrimSpace(draft)
-	if draft == "" {
-		return fmt.Errorf("draft is required")
-	}
-	h.mu.Lock()
-	if !h.cocreating {
-		h.mu.Unlock()
-		return fmt.Errorf("not in co-create")
-	}
-	h.cocreating = false
-	h.mu.Unlock()
-
-	// PauseForCoCreate 的 abort 是异步的:等引擎循环真正收敛再继续,回到与手动
-	// 暂停后 Continue 一致的"真停机"前提。共创窗口是人机交互时间尺度,短轮询无感。
-	for h.engine.isRunning() {
-		time.Sleep(20 * time.Millisecond)
-	}
-
-	h.emitEvent(Event{Time: time.Now(), Category: "SYSTEM", Summary: "阶段共创完成，已注入后续方向并恢复创作", Level: "info"})
-	return h.Continue(stagePlanPrefix + draft)
-}
-
-// CancelCoCreate 放弃阶段共创：清占用标记，保持暂停态（用户可在输入框继续或重启 Resume）。
-func (h *Host) CancelCoCreate() {
-	h.mu.Lock()
-	if !h.cocreating {
-		h.mu.Unlock()
-		return
-	}
-	h.cocreating = false
-	h.mu.Unlock()
-	h.emitEvent(Event{Time: time.Now(), Category: "SYSTEM", Summary: "已退出阶段共创，创作保持暂停（可在输入框继续）", Level: "info"})
-}
-
 // ── 工具 ──
 
 func (h *Host) refreshWriterRestore() {
@@ -1785,9 +1692,9 @@ func (h *Host) ApplyWritingRules(text string) error {
 	return nil
 }
 
-// acquireExclusive 原子占用后台独占作业槽（import/simulate）：Engine 运行中、阶段共创窗口内、
-// 或已有独占作业在跑时拒绝。成功即登记占用，作业结束须调 releaseExclusive 释放——否则两个导入
-// 或导入+仿写会并发抢改同一状态。补上此前只查 ==running/cocreating、不登记作业本身的缺口。
+// acquireExclusive 原子占用后台独占作业槽（import/simulate）：Engine 运行中或已有独占作业
+// 在跑时拒绝。成功即登记占用，作业结束须调 releaseExclusive 释放——否则两个导入
+// 或导入+仿写会并发抢改同一状态。补上此前只查 ==running、不登记作业本身的缺口。
 func (h *Host) acquireExclusive(action string) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -1798,8 +1705,6 @@ func (h *Host) acquireExclusive(action string) error {
 	// 该窗口内 lifecycle 已非 running 但引擎仍可能在写 store（与启动门禁同一纪律）。
 	case h.lifecycle == lifecycleRunning || h.engine.isRunning():
 		return fmt.Errorf("创作引擎运行中或正在停止，请稍候再%s", action)
-	case h.cocreating:
-		return fmt.Errorf("阶段共创进行中，请先结束共创后再%s", action)
 	case h.exclusive != "":
 		return fmt.Errorf("%s进行中，请先完成后再%s", h.exclusive, action)
 	}

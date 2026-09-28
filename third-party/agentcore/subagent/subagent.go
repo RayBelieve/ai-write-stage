@@ -90,11 +90,13 @@ type Config struct {
 	CacheLastMessage string
 
 	// PromptCacheKey is the base prompt-cache routing identity for this
-	// sub-agent's LLM requests. Each spawn appends "#<seq>" so every run gets
-	// its own cache lineage — one conversation, one key — which providers
-	// with key-routed prefix caching (OpenAI prompt_cache_key) use to keep a
-	// session's requests on the same cache shard. Empty sends no hint.
+	// sub-agent's LLM requests. By default each spawn appends "#<seq>" so a
+	// run gets its own cache lineage. StablePromptCacheKey keeps the base key
+	// across runs when the caller deliberately keeps a stable prompt prefix.
 	PromptCacheKey string
+	// StablePromptCacheKey allows adjacent runs to share PromptCacheKey.
+	// Callers must rotate the base key when the stable prompt epoch changes.
+	StablePromptCacheKey bool
 
 	// StopGuardFactory, if non-nil, creates a fresh StopGuard for each run.
 	StopGuardFactory func(agentName, task string) agentcore.StopGuard
@@ -543,6 +545,13 @@ func (r *Runner) Run(ctx context.Context, agent, task string) (RunResult, error)
 	return r.run(ctx, agent, task, nil, runOptions{mode: ModeSingle, reportProgress: true})
 }
 
+// RunWithInitialPrompt runs a sub-agent with a stable prefix before its
+// per-run task. The task remains unchanged for callbacks, guards, and logs;
+// only the initial user message sent to the model contains the prefix.
+func (r *Runner) RunWithInitialPrompt(ctx context.Context, agent, prefix, task string) (RunResult, error) {
+	return r.run(ctx, agent, task, nil, runOptions{mode: ModeSingle, reportProgress: true, initialPrompt: prefix})
+}
+
 // executeTeamSpawn delegates to the installed TeamSpawner. The subagent tool
 // validates the requested agent definition exists and prepares a TeamSpawnRequest
 // from params; the spawner owns the actual goroutine launch, tool-set
@@ -868,6 +877,7 @@ func (t *Tool) executeParallel(ctx context.Context, tasks []taskItem, modelOverr
 type runOptions struct {
 	mode                string
 	reportProgress      bool
+	initialPrompt       string
 	getSteeringMessages func() []agentcore.AgentMessage
 	onEvent             func(agentcore.Event)
 }
@@ -907,11 +917,8 @@ func (r *Runner) run(ctx context.Context, agentName, taskStr string, modelOverri
 
 	runSeq := r.runSeq.Add(1)
 
-	// One conversation, one cache key: suffix the per-run sequence so each
-	// spawn forms its own cache lineage instead of piling every run of this
-	// agent into a single routing bucket.
 	promptCacheKey := cfg.PromptCacheKey
-	if promptCacheKey != "" {
+	if promptCacheKey != "" && !cfg.StablePromptCacheKey {
 		promptCacheKey = fmt.Sprintf("%s#%d", promptCacheKey, runSeq)
 	}
 
@@ -961,7 +968,11 @@ func (r *Runner) run(ctx context.Context, agentName, taskStr string, modelOverri
 		observe = func(ev agentcore.Event) { r.eventObserver(meta, ev) }
 	}
 
-	events := agentcore.AgentLoop(ctx, []agentcore.AgentMessage{agentcore.UserMsg(taskStr)}, agentCtx, loopCfg)
+	initialTask := taskStr
+	if prefix := strings.TrimSpace(opts.initialPrompt); prefix != "" {
+		initialTask = prefix + "\n\n【当前写作片段动态任务】\n" + taskStr
+	}
+	events := agentcore.AgentLoop(ctx, []agentcore.AgentMessage{agentcore.UserMsg(initialTask)}, agentCtx, loopCfg)
 
 	var lastAssistantContent string
 	var terminalToolResult json.RawMessage // result from StopAfterTool trigger

@@ -103,9 +103,11 @@ func (t *AuditFoundationTool) Execute(_ context.Context, args json.RawMessage) (
 	if _, err := t.store.Checkpoints.AppendArtifact(domain.GlobalScope(), "foundation_audit", "meta/foundation_audit.json"); err != nil {
 		return nil, fmt.Errorf("checkpoint foundation audit: %w: %w", errs.ErrStoreWrite, err)
 	}
-	if err := t.store.Progress.UpdatePhase(domain.PhaseWriting); err != nil {
-		return nil, fmt.Errorf("enter writing phase: %w: %w", errs.ErrStoreWrite, err)
-	}
-	result["phase"] = string(domain.PhaseWriting)
+	// 不再直接推 Phase=writing：审查通过后规划产物必须先过用户确认门
+	// （大纲确认页），Engine 在 Phase=outline + 待确认状态下自然停机；用户
+	// 确认由 Host.ConfirmOutline 落工件并推进 Phase。旧书兼容由
+	// FoundationMissing 的 Phase 分支保证，写作期不再触发本工具。
+	result["awaiting_confirmation"] = true
+	result["next"] = "等待用户确认大纲；用户反馈修订请按反馈重落大纲后重新审查"
 	return json.Marshal(result)
 }

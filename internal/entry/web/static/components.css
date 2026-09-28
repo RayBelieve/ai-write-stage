@@ -1,0 +1,155 @@
+/* Shared light-tool surfaces for settings and utility pages. */
+body[data-view="api-settings"],
+body[data-view="app-settings"],
+body[data-view="prompts"],
+body[data-view="image-generation"] {
+  --bg: var(--ui-color-canvas);
+  --panel: var(--ui-color-surface);
+  --panel2: var(--ui-color-surface-muted);
+  --line: var(--ui-color-line);
+  --muted: var(--ui-color-ink-muted);
+  --text: var(--ui-color-ink);
+  --accent: var(--ui-color-accent);
+  --good: var(--ui-color-success);
+  --bad: var(--ui-color-danger);
+  color-scheme: light;
+  background: var(--ui-color-canvas);
+}
+
+body[data-view="api-settings"] .topbar,
+body[data-view="app-settings"] .topbar,
+body[data-view="prompts"] .topbar,
+body[data-view="image-generation"] .topbar {
+  color: var(--ui-color-ink);
+  border-bottom-color: var(--ui-color-line);
+  background: var(--ui-color-surface);
+}
+
+body[data-view="api-settings"] .brand strong,
+body[data-view="app-settings"] .brand strong,
+body[data-view="prompts"] .brand strong,
+body[data-view="image-generation"] .brand strong,
+body[data-view="api-settings"] .tab.active,
+body[data-view="app-settings"] .tab.active,
+body[data-view="prompts"] .tab.active,
+body[data-view="image-generation"] .tab.active,
+body[data-view="api-settings"] .status,
+body[data-view="app-settings"] .status,
+body[data-view="prompts"] .status,
+body[data-view="image-generation"] .status {
+  color: var(--ui-color-accent);
+}
+
+body[data-view="api-settings"] .tabs .tab,
+body[data-view="app-settings"] .tabs .tab,
+body[data-view="prompts"] .tabs .tab,
+body[data-view="image-generation"] .tabs .tab { color: var(--ui-color-ink-muted); }
+
+body[data-view="api-settings"] .tabs .tab:hover,
+body[data-view="app-settings"] .tabs .tab:hover,
+body[data-view="prompts"] .tabs .tab:hover,
+body[data-view="image-generation"] .tabs .tab:hover { color: var(--ui-color-ink); }
+
+body[data-view="api-settings"] .workspace-switcher > button,
+body[data-view="app-settings"] .workspace-switcher > button,
+body[data-view="prompts"] .workspace-switcher > button,
+body[data-view="image-generation"] .workspace-switcher > button {
+  color: var(--ui-color-ink);
+  border-color: var(--ui-color-line);
+  background: var(--ui-color-surface-muted);
+}
+
+.settings-view {
+  background: var(--ui-color-canvas);
+}
+
+.settings-view .settings-panel {
+  color: var(--ui-color-ink);
+  border: 1px solid var(--ui-color-line);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface);
+  box-shadow: var(--ui-shadow-soft);
+}
+
+.settings-view .section-heading h1,
+.settings-view .subheading h2,
+.settings-view .settings-panel > h2,
+.settings-view .writing-settings-head h2 {
+  color: var(--ui-color-ink);
+  font-family: var(--ui-display-font);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.settings-view .section-heading p,
+.settings-view .field-help,
+.settings-view .prompt-preset-help,
+.settings-view .muted { color: var(--ui-color-ink-muted); }
+
+.settings-view label,
+.settings-view .preset-label,
+.settings-view .subheading span { color: var(--ui-color-ink-muted); }
+
+.settings-view input,
+.settings-view textarea,
+.settings-view select {
+  color: var(--ui-color-ink);
+  border-color: var(--ui-color-line);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-color-surface);
+}
+
+.settings-view input:focus,
+.settings-view textarea:focus,
+.settings-view select:focus {
+  border-color: var(--ui-color-accent);
+  box-shadow: 0 0 0 3px rgba(154, 116, 57, .12);
+}
+
+.settings-view button:not(.danger) {
+  color: #fffaf0;
+  border-color: var(--ui-color-ink);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-color-ink);
+}
+
+.settings-view button.small,
+.settings-view button.secondary,
+.settings-view .mode-tab,
+.settings-view .inspector-tab {
+  color: var(--ui-color-ink-muted);
+  border-color: var(--ui-color-line);
+  background: var(--ui-color-surface-muted);
+}
+
+.settings-view button:hover,
+.settings-view button.small:hover,
+.settings-view button.secondary:hover { color: var(--ui-color-ink); border-color: var(--ui-color-accent); filter: none; }
+
+.settings-view .subpanel,
+.settings-view .scene-setting,
+.settings-view .profile-list-item,
+.settings-view .instance-card {
+  color: var(--ui-color-ink);
+  border-color: var(--ui-color-line);
+  background: var(--ui-color-surface-muted);
+}
+
+.settings-view table th,
+.settings-view table td { border-bottom-color: var(--ui-color-line); }
+.settings-view table th { color: var(--ui-color-ink-muted); }
+.settings-view .notice { color: var(--ui-color-ink-muted); }
+.settings-view .notice.error { color: var(--ui-color-danger); }
+.settings-view .notice.success { color: var(--ui-color-success); }
+
+/* The canvas remains intentionally dark so workflow nodes stay visually distinct. */
+.settings-view .canvas-layout,
+.settings-view .canvas-layout .panel-surface,
+.settings-view .comfy-provider-dialog,
+.settings-view .canvas-stage {
+  color-scheme: dark;
+}
+
+@media (max-width: 800px) {
+  .settings-view .settings-panel { border-right: 0; border-left: 0; border-radius: 0; }
+}
