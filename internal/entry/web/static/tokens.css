@@ -1,25 +1,28 @@
-/* Shared visual vocabulary for the incremental workbench redesign. */
+/* Shared visual vocabulary. Xuan paper for the desk, blue-black ink for the
+   work, cinnabar for the editor's mark. */
 :root {
   --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  --ui-display-font: "Songti SC", "STSong", "Source Han Serif SC", Georgia, serif;
+  --ui-display-font: "Songti SC", "STSong", "Source Han Serif SC", "Noto Serif SC", Georgia, DengXian, "Microsoft YaHei", serif;
   --ui-mono-font: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
 
-  --ui-color-canvas: #f6f4ef;
-  --ui-color-surface: #fffdf9;
-  --ui-color-surface-muted: #efede7;
-  --ui-color-ink: #242522;
-  --ui-color-ink-muted: #6e716d;
-  --ui-color-ink-subtle: #979a94;
-  --ui-color-line: rgba(36, 37, 34, .12);
-  --ui-color-accent: #9a7439;
-  --ui-color-accent-soft: #eee4d1;
-  --ui-color-success: #47765d;
-  --ui-color-danger: #a95555;
+  --ui-color-canvas: #eff0e9;
+  --ui-color-surface: #f8f8f3;
+  --ui-color-surface-muted: #e5e7dd;
+  --ui-color-ink: #1d2a3d;
+  --ui-color-ink-muted: #5a6472;
+  --ui-color-ink-subtle: #8b929c;
+  --ui-color-line: rgba(29, 42, 61, .13);
+  --ui-color-accent: #b03a26;
+  --ui-color-accent-soft: #f4e4de;
+  --ui-color-success: #3f6b50;
+  --ui-color-danger: #8f2d1c;
+  --ui-color-grid: rgba(112, 148, 124, .24);
+  --ui-focus: 0 0 0 3px rgba(176, 58, 38, .18);
 
   --ui-radius-sm: 6px;
   --ui-radius-md: 10px;
   --ui-radius-lg: 14px;
-  --ui-shadow-soft: 0 1px 2px rgba(42, 35, 22, .04), 0 10px 28px rgba(42, 35, 22, .06);
+  --ui-shadow-soft: 0 1px 0 rgba(29, 42, 61, .05);
 
   --ui-space-1: 4px;
   --ui-space-2: 8px;
@@ -28,4 +31,9 @@
   --ui-space-5: 24px;
   --ui-space-6: 32px;
   --ui-space-7: 48px;
+}
+
+::selection {
+  background: var(--ui-color-accent-soft);
+  color: var(--ui-color-ink);
 }

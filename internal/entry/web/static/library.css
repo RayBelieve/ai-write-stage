@@ -1,9 +1,10 @@
 /* Library surface. Runtime behaviour remains in app.js during migration. */
 #welcome.library-screen {
   display: block;
-  min-height: 100vh;
+  height: 100vh;
   padding: 0;
   overflow: auto;
+  scrollbar-gutter: stable;
   color: var(--ui-color-ink);
   background: var(--ui-color-canvas);
 }
@@ -19,6 +20,7 @@ html.welcome-seen #welcome.library-screen { display: none; }
 }
 
 .library-shell {
+  position: relative;
   width: min(1120px, 100%);
   margin: 0 auto;
   padding: 28px 32px 64px;
@@ -45,19 +47,21 @@ html.welcome-seen #welcome.library-screen { display: none; }
   width: 30px;
   height: 30px;
   place-items: center;
-  color: #f8f4ea;
-  border-radius: 8px;
-  background: var(--ui-color-ink);
+  color: #f7f5ee;
+  border-radius: 4px;
+  background: var(--ui-color-accent);
+  box-shadow: inset 0 0 0 1px rgba(247, 245, 238, .3);
   font-family: var(--ui-display-font);
   font-size: 16px;
   font-weight: 700;
+  transform: rotate(-2.5deg);
 }
 
 .library-brand-name {
-  font-family: var(--ui-display-font);
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: .04em;
+  color: var(--ui-color-ink-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .22em;
 }
 
 .library-header-meta {
@@ -66,11 +70,26 @@ html.welcome-seen #welcome.library-screen { display: none; }
 }
 
 .library-intro {
+  position: relative;
   max-width: 680px;
-  padding: 72px 0 48px;
+  padding: 84px 0 56px;
+}
+
+.library-intro::before {
+  content: "";
+  position: absolute;
+  inset: -24px -200px -32px -56px;
+  background-image:
+    linear-gradient(to right, var(--ui-color-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--ui-color-grid) 1px, transparent 1px);
+  background-size: 30px 30px;
+  -webkit-mask-image: radial-gradient(circle at 26% 34%, #000 0%, rgba(0, 0, 0, .6) 48%, transparent 80%);
+  mask-image: radial-gradient(circle at 26% 34%, #000 0%, rgba(0, 0, 0, .6) 48%, transparent 80%);
+  pointer-events: none;
 }
 
 .library-intro h1 {
+  position: relative;
   margin: 0;
   color: var(--ui-color-ink);
   font-family: var(--ui-display-font);
@@ -78,14 +97,71 @@ html.welcome-seen #welcome.library-screen { display: none; }
   font-weight: 600;
   letter-spacing: 0;
   line-height: 1.15;
+  text-wrap: balance;
+}
+
+.library-intro h1::after {
+  content: "";
+  display: inline-block;
+  width: .34em;
+  height: .34em;
+  margin-left: .28em;
+  border-radius: 2px;
+  background: var(--ui-color-accent);
+  box-shadow: inset 0 0 0 1px rgba(247, 245, 238, .3);
+  transform: rotate(-3deg) translateY(-.04em);
 }
 
 .library-intro p {
+  position: relative;
   max-width: 520px;
-  margin: 16px 0 0;
+  margin: 18px 0 0;
   color: var(--ui-color-ink-muted);
   font-size: 15px;
   line-height: 1.8;
+}
+
+.library-inscription {
+  position: absolute;
+  top: 92px;
+  right: 40px;
+  writing-mode: vertical-rl;
+  color: var(--ui-color-ink-subtle);
+  font-family: var(--ui-display-font);
+  font-size: 15px;
+  line-height: 2.6;
+  letter-spacing: .42em;
+  user-select: none;
+}
+
+.library-inscription span {
+  display: block;
+}
+
+.library-inscription span:last-child::after {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-inline-start: 14px;
+  border-radius: 2px;
+  background: var(--ui-color-accent);
+  box-shadow: inset 0 0 0 1px rgba(247, 245, 238, .3);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .library-intro h1,
+  .library-intro p,
+  .library-inscription {
+    animation: library-rise .55s ease-out both;
+  }
+  .library-intro p { animation-delay: .09s; }
+  .library-inscription { animation-delay: .18s; }
+}
+
+@keyframes library-rise {
+  from { opacity: 0; translate: 0 10px; }
+  to { opacity: 1; translate: 0 0; }
 }
 
 .library-section {
@@ -109,13 +185,7 @@ html.welcome-seen #welcome.library-screen { display: none; }
   font-weight: 600;
 }
 
-.library-eyebrow {
-  color: var(--ui-color-accent);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
+.library-eyebrow { display: none; }
 
 #welcome.library-screen .welcome-mode small {
   display: none;
@@ -155,14 +225,30 @@ html.welcome-seen #welcome.library-screen { display: none; }
   background: var(--ui-color-surface);
   text-align: left;
   box-shadow: none;
+  transition: border-color .18s, translate .18s, box-shadow .18s;
 }
 
 #welcome.library-screen .welcome-workspace-item:hover {
   color: var(--ui-color-ink);
-  border-color: var(--ui-color-accent);
+  border-color: color-mix(in srgb, var(--ui-color-ink) 28%, var(--ui-color-line));
   background: var(--ui-color-surface);
   filter: none;
-  transform: translateY(-1px);
+  translate: 3px 0;
+  box-shadow: 0 4px 18px rgba(29, 42, 61, .06);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  #welcome.library-screen .welcome-workspace-item { animation: library-item-in .45s ease-out both; }
+  #welcome.library-screen .welcome-workspace-item:nth-child(2) { animation-delay: .06s; }
+  #welcome.library-screen .welcome-workspace-item:nth-child(3) { animation-delay: .12s; }
+  #welcome.library-screen .welcome-workspace-item:nth-child(4) { animation-delay: .18s; }
+  #welcome.library-screen .welcome-workspace-item:nth-child(5) { animation-delay: .24s; }
+  #welcome.library-screen .welcome-workspace-item:nth-child(n+6) { animation-delay: .3s; }
+}
+
+@keyframes library-item-in {
+  from { opacity: 0; translate: 0 8px; }
+  to { opacity: 1; translate: 0 0; }
 }
 
 #welcome.library-screen .welcome-workspace-item.active {
@@ -226,7 +312,7 @@ html.welcome-seen #welcome.library-screen { display: none; }
 #welcome.library-screen .welcome-workspace-new button,
 #welcome.library-screen .welcome-prompt-row button,
 #welcome.library-screen .welcome-existing button {
-  color: #fffaf0;
+  color: #f7f5ee;
   border: 0;
   border-radius: var(--ui-radius-sm);
   background: var(--ui-color-ink);
@@ -270,11 +356,16 @@ html.welcome-seen #welcome.library-screen { display: none; }
   display: none;
 }
 
+@media (max-width: 860px) {
+  .library-inscription { display: none; }
+  .library-intro::before { inset-right: -40px; }
+}
+
 @media (max-width: 640px) {
   .library-shell { padding: 20px 18px 40px; }
   .library-header-meta { display: none; }
   .library-intro { padding: 56px 0 36px; }
-  .library-intro h1 { font-size: 38px; }
+  .library-intro h1 { font-size: 34px; }
   .library-section-heading { align-items: start; flex-direction: column; }
   .library-create { grid-template-columns: 1fr; }
   #welcome.library-screen .welcome-workspace-item { grid-template-columns: 1fr; gap: 4px; }

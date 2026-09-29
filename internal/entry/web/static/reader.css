@@ -2,16 +2,16 @@
    runtime and uses the same serif-led visual language as the library. */
 .reader-active { overflow: hidden; }
 .reader-view {
-  --reader-canvas: #f3f0e8;
-  --reader-paper: #fffdf8;
-  --reader-ink: #292a26;
+  --reader-canvas: var(--ui-color-canvas, #eff0e9);
+  --reader-paper: var(--ui-color-surface, #f8f8f3);
+  --reader-ink: var(--ui-color-ink, #1d2a3d);
   --reader-font: var(--ui-display-font, Georgia, serif);
   --reader-font-size: 18px;
   --reader-line-height: 2;
-  --reader-sidebar: color-mix(in srgb, var(--reader-ink) 6%, var(--reader-canvas));
-  --reader-muted: color-mix(in srgb, var(--reader-ink) 62%, var(--reader-canvas));
-  --reader-line: color-mix(in srgb, var(--reader-ink) 16%, transparent);
-  --reader-accent: #9a7439;
+  --reader-sidebar: color-mix(in srgb, var(--reader-ink) 5%, var(--reader-canvas));
+  --reader-muted: color-mix(in srgb, var(--reader-ink) 58%, var(--reader-canvas));
+  --reader-line: var(--ui-color-line, rgba(29, 42, 61, .13));
+  --reader-accent: var(--ui-color-accent, #b03a26);
   position: fixed;
   inset: 0;
   z-index: 1200;
@@ -63,12 +63,12 @@
   border-radius: 12px;
   color: var(--reader-ink);
   background: var(--reader-canvas);
-  box-shadow: 0 16px 40px rgba(42, 35, 22, .16);
+  box-shadow: 0 16px 40px rgba(29, 42, 61, .18);
   font-family: var(--ui-font, system-ui, sans-serif);
   font-size: 13px;
 }
 .reader-settings[hidden] { display: none; }
-.reader-settings-title { font-weight: 700; letter-spacing: .08em; }
+.reader-settings-title { font-weight: 600; letter-spacing: 0; }
 .reader-setting { display: grid; gap: 8px; }
 .reader-setting output { color: var(--reader-muted); font-variant-numeric: tabular-nums; }
 .reader-font-options,
@@ -132,12 +132,12 @@
   height: 52px;
   padding: 18px 20px 10px;
   color: var(--reader-muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .12em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
 }
-.reader-chapters { height: calc(100% - 52px); overflow-y: auto; padding: 6px 10px 24px; scrollbar-color: #c4bba9 transparent; }
+.reader-chapters { height: calc(100% - 52px); overflow-y: auto; padding: 6px 10px 24px; scrollbar-color: #b6bdb2 transparent; }
 .reader-chapter {
   display: grid;
   width: 100%;
@@ -153,6 +153,7 @@
 }
 .reader-chapter:hover { border-color: var(--reader-line); background: color-mix(in srgb, var(--reader-ink) 6%, var(--reader-canvas)); filter: none; }
 .reader-chapter.active { border-color: color-mix(in srgb, var(--reader-accent) 35%, transparent); border-left-color: var(--reader-accent); background: color-mix(in srgb, var(--reader-accent) 16%, var(--reader-canvas)); color: var(--reader-ink); }
+.reader-chapter.active strong::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 1.5px; background: var(--reader-accent); transform: rotate(-3deg) translateY(-1px); }
 .reader-chapter span { color: var(--reader-muted); font-size: 11px; }
 .reader-chapter strong { overflow: hidden; font-size: 13px; font-weight: 600; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -161,7 +162,31 @@
   overflow-y: auto;
   scroll-behavior: auto;
   background: var(--reader-canvas);
-  scrollbar-color: #c4bba9 transparent;
+  scrollbar-color: #b6bdb2 transparent;
+}
+.reader-content-pane::before {
+  content: "";
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: block;
+  height: 2px;
+  margin-bottom: -2px;
+  background: var(--reader-accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reader-content-pane::before {
+      animation: reader-progress linear both;
+      animation-timeline: scroll();
+    }
+  }
+}
+@keyframes reader-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
 .reader-article { width: min(100% - 64px, 780px); margin: 0 auto; padding: 72px 0 140px; }
 .reader-article > h1 {
@@ -180,6 +205,15 @@
   line-height: var(--reader-line-height);
 }
 .reader-content p { margin: 0 0 1.45em; }
+.reader-content > p:first-of-type:not(.reader-muted)::first-letter {
+  float: left;
+  padding: .06em .12em 0 0;
+  color: var(--reader-ink);
+  font-family: var(--reader-font);
+  font-size: 2.9em;
+  font-weight: 600;
+  line-height: .86;
+}
 .reader-content h1,
 .reader-content h2,
 .reader-content h3 { margin: 2.2em 0 .8em; color: var(--reader-ink); line-height: 1.4; letter-spacing: 0; }
@@ -195,15 +229,15 @@
   border: 1px solid var(--reader-line);
   border-radius: 8px;
   object-fit: contain;
-  box-shadow: 0 10px 28px rgba(42, 35, 22, .1);
+  box-shadow: 0 10px 28px rgba(29, 42, 61, .12);
 }
 .reader-content blockquote { margin: 1.6em 0; padding: 4px 0 4px 20px; border-left: 3px solid var(--reader-accent); color: var(--reader-muted); }
 .reader-content pre { overflow-x: auto; padding: 16px; border: 1px solid var(--reader-line); border-radius: 8px; background: color-mix(in srgb, var(--reader-ink) 8%, var(--reader-canvas)); color: var(--reader-ink); font: 14px/1.65 var(--ui-mono-font, Consolas, monospace); }
 .reader-content code { font-size: .88em; }
 .reader-content hr { margin: 48px 0; border: 0; border-top: 1px solid var(--reader-line); }
-.reader-content a { color: #7b5b2e; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.reader-content a { color: var(--reader-accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
 .reader-muted { color: var(--reader-muted); font-family: var(--ui-font, system-ui, sans-serif); font-size: 14px; }
-.reader-error { color: #a95555; }
+.reader-error { color: #a03a28; }
 
 @media (max-width: 760px) {
   .reader-view { grid-template-rows: 58px minmax(0, 1fr); }

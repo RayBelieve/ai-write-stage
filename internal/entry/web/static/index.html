@@ -4,26 +4,27 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ainovel Web Workbench</title>
-  <link rel="stylesheet" href="/static/tokens.css?v=frontend-foundation-v1">
-  <link rel="stylesheet" href="/static/style.css?v=review-gate-v2">
-  <link rel="stylesheet" href="/static/library.css?v=library-v1">
-  <link rel="stylesheet" href="/static/writing.css?v=writing-v4">
-  <link rel="stylesheet" href="/static/components.css?v=components-v1">
-  <link rel="stylesheet" href="/static/image-generation.css?v=image-generation-ui-v1">
-  <link rel="stylesheet" href="/static/tavern.css?v=tavern-v1">
-  <link rel="stylesheet" href="/static/reader.css?v=reader-v3">
+  <link rel="stylesheet" href="/static/tokens.css?v=zhupi-v3">
+  <link rel="stylesheet" href="/static/style.css?v=zhupi-v3">
+  <link rel="stylesheet" href="/static/library.css?v=zhupi-v3">
+  <link rel="stylesheet" href="/static/writing.css?v=zhupi-v3">
+  <link rel="stylesheet" href="/static/components.css?v=zhupi-v3">
+  <link rel="stylesheet" href="/static/image-generation.css?v=zhupi-v3">
+  <link rel="stylesheet" href="/static/tavern.css?v=zhupi-v3">
+  <link rel="stylesheet" href="/static/reader.css?v=zhupi-v3">
 </head>
 <body data-image-chat-enabled="false" data-image-play-enabled="false" data-view="dashboard">
   <section id="welcome" class="welcome-screen library-screen" aria-labelledby="welcome-title">
     <div class="library-shell">
       <header class="library-header">
         <div class="library-brand"><span class="library-brand-mark">书</span><span class="library-brand-name">AI CREATE SPACE</span></div>
-        <span class="library-header-meta">本地创作空间 · 私密 · 无打扰</span>
+        <span class="library-header-meta">本地创作空间，私密无打扰</span>
       </header>
       <div class="library-intro">
         <h1 id="welcome-title">你的故事，从这里开始</h1>
         <p>打开一本作品继续写下去，或从一个想法开始新建属于你的创作空间。</p>
       </div>
+      <div class="library-inscription" aria-hidden="true"><span>文章千古事</span><span>得失寸心知</span></div>
       <div class="welcome-content">
       <div id="welcome-workspaces" class="welcome-workspaces">
         <div class="library-section-heading"><div><div class="library-eyebrow">Library</div><div class="welcome-mode"><span>我的作品</span><small>选择一本已有的书，或新建工作区后再开始创作</small></div></div></div>
@@ -122,7 +123,7 @@
       <header class="galgame-header"><div class="galgame-header-left"><div class="galgame-mode" role="tablist"><button id="galgame-mode-chat" class="small active" type="button">对话</button><button id="galgame-mode-play" class="small" type="button">剧场</button></div></div><div class="galgame-header-center"><strong id="galgame-character-name">选择角色</strong><small id="galgame-session-name">Galgame 会话</small><button id="galgame-play-status" class="galgame-play-status" type="button" hidden aria-pressed="false" title="打开运行日志">未开局</button></div><div class="galgame-header-actions"><button id="galgame-settings" class="small" type="button" title="设置">⚙ 设置</button></div></header>
       <div class="galgame-image"><img id="galgame-image" alt="当前场景" hidden><span id="galgame-image-placeholder">等待场景图片</span><span id="galgame-image-status" class="galgame-image-status"></span></div>
       <div class="galgame-dialogue-slot"><div id="galgame-dialogue" class="galgame-dialogue"><div class="muted">选择角色并开始对话。</div></div><nav id="galgame-play-nav" class="galgame-play-nav" hidden><span id="galgame-play-hint" class="galgame-play-hint"></span><div class="galgame-play-nav-buttons"><button id="galgame-play-prev" type="button" title="上一拍" aria-label="上一拍">‹</button><button id="galgame-play-next" type="button" title="下一拍" aria-label="下一拍">›</button></div></nav></div>
-      <form id="galgame-input" class="galgame-input"><textarea id="galgame-user-input" rows="2" placeholder="输入你的回复..."></textarea><button type="submit">发送</button></form>
+      <form id="galgame-input" class="galgame-input"><textarea id="galgame-user-input" rows="2" placeholder="输入你的回复，Enter 发送，Shift+Enter 换行"></textarea><button type="submit">发送</button></form>
       <div id="galgame-drawer-backdrop" class="galgame-drawer-backdrop" hidden></div>
       <aside id="galgame-drawer" class="galgame-drawer" hidden>
       <div class="section-heading"><div><h2 id="galgame-settings-title">对话设置</h2></div><button id="galgame-close-settings" class="small" type="button">关闭</button></div>

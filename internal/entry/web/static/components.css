@@ -28,16 +28,17 @@ body[data-view="image-generation"] .topbar {
 body[data-view="api-settings"] .brand strong,
 body[data-view="app-settings"] .brand strong,
 body[data-view="prompts"] .brand strong,
-body[data-view="image-generation"] .brand strong,
-body[data-view="api-settings"] .tab.active,
-body[data-view="app-settings"] .tab.active,
-body[data-view="prompts"] .tab.active,
-body[data-view="image-generation"] .tab.active,
+body[data-view="image-generation"] .brand strong {
+  color: var(--ui-color-ink);
+}
+
 body[data-view="api-settings"] .status,
 body[data-view="app-settings"] .status,
 body[data-view="prompts"] .status,
 body[data-view="image-generation"] .status {
-  color: var(--ui-color-accent);
+  color: var(--ui-color-ink-muted);
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 body[data-view="api-settings"] .tabs .tab,
@@ -68,7 +69,6 @@ body[data-view="image-generation"] .workspace-switcher > button {
   border: 1px solid var(--ui-color-line);
   border-radius: var(--ui-radius-md);
   background: var(--ui-color-surface);
-  box-shadow: var(--ui-shadow-soft);
 }
 
 .settings-view .section-heading h1,
@@ -79,6 +79,11 @@ body[data-view="image-generation"] .workspace-switcher > button {
   font-family: var(--ui-display-font);
   letter-spacing: 0;
   text-transform: none;
+}
+
+.settings-view .section-heading {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ui-color-line);
 }
 
 .settings-view .section-heading p,
@@ -103,11 +108,11 @@ body[data-view="image-generation"] .workspace-switcher > button {
 .settings-view textarea:focus,
 .settings-view select:focus {
   border-color: var(--ui-color-accent);
-  box-shadow: 0 0 0 3px rgba(154, 116, 57, .12);
+  box-shadow: var(--ui-focus);
 }
 
 .settings-view button:not(.danger) {
-  color: #fffaf0;
+  color: #f7f5ee;
   border-color: var(--ui-color-ink);
   border-radius: var(--ui-radius-sm);
   background: var(--ui-color-ink);
@@ -122,9 +127,13 @@ body[data-view="image-generation"] .workspace-switcher > button {
   background: var(--ui-color-surface-muted);
 }
 
-.settings-view button:hover,
+.settings-view button:not(.danger):not(.small):not(.secondary):hover {
+  color: #f7f5ee;
+  background: #2c3d55;
+  filter: none;
+}
 .settings-view button.small:hover,
-.settings-view button.secondary:hover { color: var(--ui-color-ink); border-color: var(--ui-color-accent); filter: none; }
+.settings-view button.secondary:hover { color: var(--ui-color-ink); border-color: var(--ui-color-accent); background: var(--ui-color-accent-soft); filter: none; }
 
 .settings-view .subpanel,
 .settings-view .scene-setting,
@@ -141,6 +150,63 @@ body[data-view="image-generation"] .workspace-switcher > button {
 .settings-view .notice { color: var(--ui-color-ink-muted); }
 .settings-view .notice.error { color: var(--ui-color-danger); }
 .settings-view .notice.success { color: var(--ui-color-success); }
+
+.settings-view .model-settings-layout {
+  background: var(--ui-color-surface-muted);
+  border-color: var(--ui-color-line);
+  border-radius: var(--ui-radius-md);
+  overflow: hidden;
+}
+.settings-view .model-provider-sidebar,
+.settings-view .model-provider-editor {
+  background: var(--ui-color-surface);
+  border-color: var(--ui-color-line);
+}
+.settings-view .model-provider-item,
+.settings-view .model-provider-item:not(.danger) {
+  color: var(--ui-color-ink);
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-sm);
+  background: transparent;
+}
+.settings-view .model-provider-item:hover,
+.settings-view .model-provider-item:not(.danger):hover {
+  color: var(--ui-color-ink);
+  background: var(--ui-color-surface-muted);
+  border-color: var(--ui-color-line);
+  filter: none;
+}
+.settings-view .model-provider-item.active,
+.settings-view .model-provider-item.active:not(.danger) {
+  color: var(--ui-color-ink);
+  background: var(--ui-color-accent-soft);
+  border-color: var(--ui-color-accent);
+  box-shadow: inset 3px 0 var(--ui-color-accent);
+}
+.settings-view .model-provider-item small,
+.settings-view .model-role-row small,
+.settings-view #model-key-state { color: var(--ui-color-ink-muted); }
+.settings-view .model-editor-head h2,
+.settings-view .model-list-heading h2,
+.settings-view .model-list-heading h3,
+.settings-view .model-role-row strong { color: var(--ui-color-ink); }
+.settings-view .model-config-row {
+  border-color: var(--ui-color-line);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-color-surface-muted);
+}
+.settings-view .model-config-row input,
+.settings-view .model-config-row select {
+  color: var(--ui-color-ink);
+  background: var(--ui-color-surface);
+  border-color: var(--ui-color-line);
+}
+.settings-view .model-role-row { border-bottom-color: var(--ui-color-line); }
+.settings-view .model-routing-section {
+  margin-top: 18px;
+  padding-top: 4px;
+  border-top: 1px solid var(--ui-color-line);
+}
 
 /* The canvas remains intentionally dark so workflow nodes stay visually distinct. */
 .settings-view .canvas-layout,

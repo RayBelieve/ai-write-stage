@@ -534,6 +534,14 @@
     $('galgame-save-session')?.addEventListener('click', saveGalgameSession);
     $('galgame-new-session')?.addEventListener('click', newGalgameSession);
     $('galgame-input')?.addEventListener('submit', sendGalgameMessage);
+    // Enter submits the chat form; Shift+Enter keeps the newline. IME candidate confirmation and busy states pass through.
+    $('galgame-user-input')?.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || event.isComposing) return;
+      if (isPlayMode() || !galgameState.session) return;
+      if ($('galgame-input')?.querySelector('button')?.disabled) return;
+      event.preventDefault();
+      $('galgame-input')?.requestSubmit();
+    });
     $('galgame-card-file')?.addEventListener('change', (event) => {
       const file = event.target.files?.[0];
       if (file) importGalgameCharacter(file);
