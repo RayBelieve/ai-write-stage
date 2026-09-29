@@ -12,7 +12,6 @@ body[data-view="image-generation"] {
   --accent: var(--ui-color-accent);
   --good: var(--ui-color-success);
   --bad: var(--ui-color-danger);
-  color-scheme: light;
   background: var(--ui-color-canvas);
 }
 
@@ -112,10 +111,10 @@ body[data-view="image-generation"] .workspace-switcher > button {
 }
 
 .settings-view button:not(.danger) {
-  color: #f7f5ee;
-  border-color: var(--ui-color-ink);
+  color: var(--ui-color-btn-text);
+  border-color: var(--ui-color-btn-bg);
   border-radius: var(--ui-radius-sm);
-  background: var(--ui-color-ink);
+  background: var(--ui-color-btn-bg);
 }
 
 .settings-view button.small,
@@ -128,8 +127,8 @@ body[data-view="image-generation"] .workspace-switcher > button {
 }
 
 .settings-view button:not(.danger):not(.small):not(.secondary):hover {
-  color: #f7f5ee;
-  background: #2c3d55;
+  color: var(--ui-color-btn-text);
+  background: var(--ui-color-btn-bg-hover);
   filter: none;
 }
 .settings-view button.small:hover,
@@ -206,14 +205,6 @@ body[data-view="image-generation"] .workspace-switcher > button {
   margin-top: 18px;
   padding-top: 4px;
   border-top: 1px solid var(--ui-color-line);
-}
-
-/* The canvas remains intentionally dark so workflow nodes stay visually distinct. */
-.settings-view .canvas-layout,
-.settings-view .canvas-layout .panel-surface,
-.settings-view .comfy-provider-dialog,
-.settings-view .canvas-stage {
-  color-scheme: dark;
 }
 
 @media (max-width: 800px) {

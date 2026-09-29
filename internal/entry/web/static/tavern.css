@@ -1,6 +1,5 @@
 /* Tavern uses the same palette as the novel workbench. */
 body[data-view="galgame"] {
-  color-scheme: light;
   color: var(--ui-color-ink);
   background: var(--ui-color-canvas);
   --bg: var(--ui-color-canvas);
@@ -48,8 +47,8 @@ body[data-view="galgame"] button.secondary {
   --tavern-accent-soft: var(--ui-color-accent-soft);
   --tavern-espresso: var(--ui-color-ink);
   --tavern-user-fill: var(--ui-color-accent-soft);
-  --tavern-mark: rgba(112, 148, 124, .16);
-  --tavern-mark-line: rgba(112, 148, 124, .7);
+  --tavern-mark: rgba(var(--ui-mark-rgb),.16);
+  --tavern-mark-line: rgba(var(--ui-mark-rgb),.7);
   color: var(--tavern-ink);
   background: var(--tavern-bg);
 }
@@ -121,7 +120,7 @@ body[data-view="galgame"] button.secondary {
 #galgame .galgame-image::after { display: none; }
 #galgame .galgame-image img {
   border-radius: var(--ui-radius-md);
-  box-shadow: 0 10px 36px rgba(29, 42, 61, .16);
+  box-shadow: 0 10px 36px rgba(var(--ui-ink-rgb),.16);
 }
 #galgame .galgame-image-placeholder,
 #galgame .galgame-image-status { color: var(--tavern-subtle); }
@@ -130,7 +129,7 @@ body[data-view="galgame"] button.secondary {
   bottom: 28px;
   border: 1px solid var(--tavern-line);
   border-radius: 999px;
-  background: rgba(248, 248, 243, .92);
+  background: rgba(var(--ui-surface-rgb), .92);
   color: var(--tavern-muted);
   font-size: 11px;
 }
@@ -139,7 +138,7 @@ body[data-view="galgame"] button.secondary {
 #galgame .galgame-dialogue {
   padding: 22px clamp(18px, 3vw, 40px);
   background: var(--tavern-read);
-  scrollbar-color: rgba(29, 42, 61, .2) transparent;
+  scrollbar-color: rgba(var(--ui-ink-rgb),.2) transparent;
 }
 #galgame .galgame-dialogue .muted { color: var(--tavern-muted); }
 #galgame .galgame-message {
@@ -152,7 +151,7 @@ body[data-view="galgame"] button.secondary {
   background: transparent;
   box-shadow: none;
 }
-#galgame .galgame-message.character { border-left-color: rgba(29, 42, 61, .45); }
+#galgame .galgame-message.character { border-left-color: rgba(var(--ui-ink-rgb),.45); }
 #galgame .galgame-message.user {
   max-width: min(520px, 88%);
   margin-left: auto;
@@ -291,14 +290,14 @@ body[data-view="galgame"] button.secondary {
 #galgame .galgame-input button {
   min-width: 86px;
   border-radius: var(--ui-radius-sm);
-  color: #f7f5ee;
-  border-color: var(--ui-color-ink);
-  background: var(--ui-color-ink);
+  color: var(--ui-color-btn-text);
+  border-color: var(--ui-color-btn-bg);
+  background: var(--ui-color-btn-bg);
 }
 #galgame .galgame-input button:hover { filter: brightness(1.06); }
 
 #galgame .galgame-drawer-backdrop {
-  background: rgba(29, 42, 61, .24);
+  background: rgba(var(--ui-ink-rgb),.24);
   backdrop-filter: blur(2px);
 }
 #galgame .galgame-drawer {

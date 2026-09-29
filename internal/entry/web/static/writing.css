@@ -165,11 +165,11 @@ body[data-image-novel-enabled="true"] #dashboard:not(.writing-events-open) .writ
   border-radius: var(--ui-radius-md);
   background-color: var(--ui-color-surface);
   background-image:
-    linear-gradient(to right, rgba(112, 148, 124, .1) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(112, 148, 124, .1) 1px, transparent 1px);
+    linear-gradient(to right, rgba(var(--ui-mark-rgb),.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(var(--ui-mark-rgb),.1) 1px, transparent 1px);
   background-size: 30px 30px;
   background-attachment: local;
-  box-shadow: 0 1px 2px rgba(29, 42, 61, .04), 0 14px 36px rgba(29, 42, 61, .07);
+  box-shadow: 0 1px 2px rgba(var(--ui-ink-rgb),.04), 0 14px 36px rgba(var(--ui-ink-rgb),.07);
   color: var(--ui-color-ink);
   font: 15px/1.85 var(--ui-font);
 }
@@ -204,8 +204,8 @@ body[data-image-novel-enabled="true"] #dashboard:not(.writing-events-open) .writ
 .writing-runtime #events { min-height: 0; color: var(--ui-color-ink-muted); font-size: 12px; }
 .writing-runtime #events > div { padding: 8px 0; border-bottom-color: var(--ui-color-line); }
 
-.writing-view .controls { min-height: 68px; padding: 12px 32px; border-top-color: var(--ui-color-line); background: var(--ui-color-surface); box-shadow: 0 -14px 30px rgba(29, 42, 61, .05); }
-.writing-view .controls button:not(.secondary) { color: #f7f5ee; border-radius: var(--ui-radius-sm); background: var(--ui-color-ink); }
+.writing-view .controls { min-height: 68px; padding: 12px 32px; border-top-color: var(--ui-color-line); background: var(--ui-color-surface); box-shadow: 0 -14px 30px rgba(var(--ui-ink-rgb),.05); }
+.writing-view .controls button:not(.secondary) { color: var(--ui-color-btn-text); border-radius: var(--ui-radius-sm); background: var(--ui-color-btn-bg); }
 .writing-view .controls #pause { padding: 9px 22px; font-weight: 600; }
 
 @media (prefers-reduced-motion: no-preference) {

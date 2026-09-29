@@ -55,12 +55,16 @@
     let stored = {};
     try { stored = JSON.parse(localStorage.getItem(APPEARANCE_KEY) || '{}'); } catch (_) { stored = {}; }
     const font = FONTS.some((item) => item.id === stored.font) ? stored.font : DEFAULT_APPEARANCE.font;
+    const night = document.documentElement.dataset.theme === 'night';
+    const nightPreset = BACKGROUNDS.find((item) => item.label === '夜间');
+    const fallbackBackground = night && nightPreset ? nightPreset.background : DEFAULT_APPEARANCE.background;
+    const fallbackColor = night && nightPreset ? nightPreset.color : DEFAULT_APPEARANCE.color;
     return {
       font,
       fontSize: clampNumber(stored.fontSize, 14, 32, DEFAULT_APPEARANCE.fontSize),
       lineHeight: Math.round(clampNumber(stored.lineHeight, 1.4, 2.8, DEFAULT_APPEARANCE.lineHeight) * 10) / 10,
-      background: sanitizeColor(stored.background, DEFAULT_APPEARANCE.background),
-      color: sanitizeColor(stored.color, DEFAULT_APPEARANCE.color),
+      background: sanitizeColor(stored.background, fallbackBackground),
+      color: sanitizeColor(stored.color, fallbackColor),
     };
   }
 

@@ -172,7 +172,7 @@ body[data-view="image-generation"] .image-generation-tabs .mode-tab:hover { colo
 body[data-view="image-generation"] .image-generation-tabs .mode-tab.active {
   color: var(--generation-ink);
   background: var(--generation-surface);
-  box-shadow: 0 1px 3px rgba(29, 42, 61, .12);
+  box-shadow: 0 1px 3px rgba(var(--ui-ink-rgb),.12);
 }
 
 body[data-view="image-generation"] .scene-settings-grid {
@@ -265,21 +265,21 @@ body[data-view="image-generation"] .profile-editor select {
   background: var(--generation-surface);
 }
 body[data-view="image-generation"] .profile-editor input:focus,
-body[data-view="image-generation"] .profile-editor select:focus { border-color: var(--generation-accent); box-shadow: 0 0 0 3px rgba(176, 58, 38, .14); }
+body[data-view="image-generation"] .profile-editor select:focus { border-color: var(--generation-accent); box-shadow: 0 0 0 3px rgba(var(--ui-accent-rgb),.14); }
 body[data-view="image-generation"] .profile-editor .button-row { align-items: center; margin-top: 4px; }
 body[data-view="image-generation"] #image-settings-msg { margin-top: -6px; }
 
 /* ComfyUI retains its canvas interaction model; these rules only tune the
    working surface, controls, nodes and inspector hierarchy. */
-body[data-view="image-generation"] .comfy-provider-overlay { padding: 24px; background: rgba(29, 42, 61, .34); }
-body[data-view="image-generation"] .comfy-provider-backdrop { background: rgba(29, 42, 61, .48); backdrop-filter: blur(3px); }
+body[data-view="image-generation"] .comfy-provider-overlay { padding: 24px; background: rgba(var(--ui-ink-rgb),.34); }
+body[data-view="image-generation"] .comfy-provider-backdrop { background: rgba(var(--ui-ink-rgb),.48); backdrop-filter: blur(3px); }
 body[data-view="image-generation"] .comfy-provider-dialog {
   width: min(1660px, calc(100vw - 48px));
   height: min(920px, calc(100vh - 48px));
   border: 1px solid var(--ui-color-line);
   border-radius: 14px;
   background: var(--ui-color-surface);
-  box-shadow: 0 24px 80px rgba(29, 42, 61, .22);
+  box-shadow: 0 24px 80px rgba(var(--ui-ink-rgb),.22);
 }
 body[data-view="image-generation"] .comfy-provider-dialog .canvas-layout { padding: 22px; }
 body[data-view="image-generation"] .comfy-provider-dialog .canvas-heading { margin-bottom: 14px; }
@@ -334,7 +334,7 @@ body[data-view="image-generation"] .canvas-tools button:hover,
 body[data-view="image-generation"] .canvas-footer button:hover,
 body[data-view="image-generation"] .canvas-footer a.small:hover { border-color: var(--ui-color-accent); filter: none; }
 body[data-view="image-generation"] .canvas-stage { background: var(--ui-color-canvas); }
-body[data-view="image-generation"] .graph-edge { stroke: rgba(29, 42, 61, .4); stroke-width: 2; opacity: .75; }
+body[data-view="image-generation"] .graph-edge { stroke: rgba(var(--ui-ink-rgb),.4); stroke-width: 2; opacity: .75; }
 body[data-view="image-generation"] .graph-node rect { fill: var(--ui-color-surface); stroke: var(--ui-color-line); stroke-width: 1.2; }
 body[data-view="image-generation"] .graph-node:hover rect { stroke: var(--ui-color-accent); stroke-width: 1.6; }
 body[data-view="image-generation"] .graph-node.has-exposed rect { stroke: var(--ui-color-success); }

@@ -19,6 +19,25 @@
   --ui-color-grid: rgba(112, 148, 124, .24);
   --ui-focus: 0 0 0 3px rgba(176, 58, 38, .18);
 
+  /* RGB triplets let translucent tints follow the active theme. */
+  --ui-ink-rgb: 29, 42, 61;
+  --ui-accent-rgb: 176, 58, 38;
+  --ui-mark-rgb: 112, 148, 124;
+  --ui-on-accent-rgb: 247, 245, 238;
+  --ui-shadow-rgb: 29, 42, 61;
+  --ui-surface-rgb: 248, 248, 243;
+
+  /* Solid controls that sit on top of the ink color. */
+  --ui-color-btn-bg: var(--ui-color-ink);
+  --ui-color-btn-bg-hover: #2c3d55;
+  --ui-color-btn-text: #f7f5ee;
+  --ui-color-danger-deep: #7e2818;
+  --ui-color-danger-deep-hover: #99331f;
+  --ui-color-scroll-thumb: #b6bdb2;
+
+  /* Text on cinnabar stays pale in both themes: the seal never fades. */
+  --ui-color-on-accent: #f7f5ee;
+
   --ui-radius-sm: 6px;
   --ui-radius-md: 10px;
   --ui-radius-lg: 14px;
@@ -36,4 +55,38 @@
 ::selection {
   background: var(--ui-color-accent-soft);
   color: var(--ui-color-ink);
+}
+
+/* Night reading by lamplight: the same desk after dark. Ink becomes paper,
+   paper becomes ink, cinnabar glows a little brighter against the dark. */
+:root[data-theme="night"] {
+  color-scheme: dark;
+
+  --ui-color-canvas: #14181f;
+  --ui-color-surface: #1c232e;
+  --ui-color-surface-muted: #242e3b;
+  --ui-color-ink: #e6e3d8;
+  --ui-color-ink-muted: #9aa4ae;
+  --ui-color-ink-subtle: #6f7987;
+  --ui-color-line: rgba(230, 227, 216, .14);
+  --ui-color-accent: #cd5a43;
+  --ui-color-accent-soft: rgba(205, 90, 67, .18);
+  --ui-color-success: #5f9070;
+  --ui-color-danger: #cf6a52;
+  --ui-color-grid: rgba(112, 148, 124, .13);
+  --ui-focus: 0 0 0 3px rgba(205, 90, 67, .28);
+
+  --ui-ink-rgb: 230, 227, 216;
+  --ui-accent-rgb: 205, 90, 67;
+  --ui-mark-rgb: 132, 168, 144;
+  --ui-shadow-rgb: 0, 0, 0;
+  --ui-surface-rgb: 28, 35, 46;
+
+  --ui-color-btn-bg-hover: #d4d1c6;
+  --ui-color-btn-text: #1d2a3d;
+  --ui-color-danger-deep: #a83a24;
+  --ui-color-danger-deep-hover: #c04527;
+  --ui-color-scroll-thumb: #3a4552;
+
+  --ui-shadow-soft: 0 1px 0 rgba(0, 0, 0, .3);
 }
