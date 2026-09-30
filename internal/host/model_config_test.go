@@ -224,6 +224,73 @@ func TestConfigureModelsDoesNotGuessRenameFromDeleteAndAdd(t *testing.T) {
 	}
 }
 
+func TestDeleteProviderRemovesUnreferencedProvider(t *testing.T) {
+	h, _ := newModelConfigTestHost(t)
+	extra := bootstrap.ProviderConfig{Type: "openai", APIKey: "sk-extra", Models: []bootstrap.ModelConfig{{Name: "m1"}}}
+	h.cfg.Providers["extra"] = extra
+	library, err := bootstrap.LoadModelLibrary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	library.Providers["extra"] = extra
+	library.ProviderOrder = append(library.ProviderOrder, "extra")
+	if err := bootstrap.SaveModelLibrary(library); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := h.DeleteProvider("extra"); err != nil {
+		t.Fatalf("delete provider: %v", err)
+	}
+	if _, ok := h.cfg.Providers["extra"]; ok {
+		t.Fatal("extra provider still in runtime config")
+	}
+	stored, err := bootstrap.LoadModelLibrary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := stored.Providers["extra"]; ok {
+		t.Fatal("extra provider still in model library")
+	}
+	for _, name := range stored.ProviderOrder {
+		if name == "extra" {
+			t.Fatal("extra provider still in provider order")
+		}
+	}
+	// 删除未被引用的 provider 不得影响当前模型选择。
+	provider, model, _ := h.models.CurrentSelection("default")
+	if provider != "proxy" || model != "old" {
+		t.Fatalf("runtime selection mutated = %s/%s", provider, model)
+	}
+}
+
+func TestDeleteProviderRejectsReferencedProvider(t *testing.T) {
+	h, _ := newModelConfigTestHost(t)
+	err := h.DeleteProvider("proxy")
+	if err == nil || !strings.Contains(err.Error(), "default") {
+		t.Fatalf("expected default reference error, got %v", err)
+	}
+	if _, ok := h.cfg.Providers["proxy"]; !ok {
+		t.Fatal("referenced provider was removed from runtime config")
+	}
+	stored, err := bootstrap.LoadModelLibrary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := stored.Providers["proxy"]; !ok {
+		t.Fatal("referenced provider was removed from model library")
+	}
+}
+
+func TestDeleteProviderRejectsMissingProvider(t *testing.T) {
+	h, _ := newModelConfigTestHost(t)
+	if err := h.DeleteProvider("ghost"); err == nil {
+		t.Fatal("expected error for missing provider")
+	}
+	if err := h.DeleteProvider("  "); err == nil {
+		t.Fatal("expected error for blank provider")
+	}
+}
+
 func TestModelConfigurationsIncludesReferencedUnlistedModel(t *testing.T) {
 	pc := bootstrap.ProviderConfig{Models: []bootstrap.ModelConfig{{Name: "listed"}}}
 	cfg := bootstrap.Config{

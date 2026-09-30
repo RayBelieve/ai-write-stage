@@ -49,6 +49,8 @@ func (c *v2Controller) settingsModels(w http.ResponseWriter, r *http.Request) {
 	switch req.Action {
 	case "save_provider":
 		err = c.rt.ConfigureModels(draft)
+	case "delete_provider":
+		err = c.rt.DeleteProvider(req.Provider)
 	case "test_provider":
 		err = c.rt.TestModelConnection(r.Context(), draft, req.Model)
 	case "select_model":

@@ -51,6 +51,7 @@
   function renderProviderEditor() {
     const provider = providerByName(selectedProvider);
     $('model-editor-title').textContent = provider ? `服务商 · ${provider.name}` : '新增服务商';
+    $('model-delete-provider').hidden = !provider;
     $('model-provider-name').value = provider?.name || '';
     $('model-provider-name').disabled = Boolean(provider);
     $('model-provider-type').value = provider?.type || '';
@@ -185,6 +186,13 @@
     const body = providerRequest('test_provider');
     body.model = body.models[0]?.name || '';
     update(body, '连接测试成功');
+  };
+  $('model-delete-provider').onclick = () => {
+    const provider = providerByName(selectedProvider);
+    if (!provider) return;
+    const count = provider.models?.length || 0;
+    if (!window.confirm(`确定删除服务商「${provider.name}」及其 ${count} 个模型？此操作不可撤销。`)) return;
+    update({ action: 'delete_provider', provider: provider.name }, '服务商已删除');
   };
 
   window.ModelSettings = { load };

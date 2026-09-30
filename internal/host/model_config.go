@@ -439,6 +439,74 @@ func (h *Host) TestModelConnection(ctx context.Context, draft ModelConfiguration
 	return nil
 }
 
+// DeleteProvider 校验、持久化并热应用删除一个 provider。
+// 与模型删除一致：默认模型、角色或 fallback 仍引用该服务商时拒绝删除，
+// 配置编辑绝不隐式切换当前模型。
+func (h *Host) DeleteProvider(provider string) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	provider = strings.TrimSpace(provider)
+	if provider == "" {
+		return fmt.Errorf("provider 不能为空")
+	}
+	if _, ok := h.cfg.Providers[provider]; !ok {
+		return fmt.Errorf("Provider %q 不存在", provider)
+	}
+	if refs := h.providerReferencesLocked(provider); len(refs) > 0 {
+		return fmt.Errorf("服务商 %q 仍被 %s 引用，请先在模型设置中切换后再删除", provider, strings.Join(refs, "、"))
+	}
+
+	candidate := bootstrap.CloneConfig(h.cfg)
+	delete(candidate.Providers, provider)
+	if err := candidate.ValidateBase(); err != nil {
+		return err
+	}
+
+	library, err := bootstrap.LoadModelLibrary()
+	if err != nil {
+		return err
+	}
+	delete(library.Providers, provider)
+	order := make([]string, 0, len(library.ProviderOrder))
+	for _, name := range library.ProviderOrder {
+		if name != provider {
+			order = append(order, name)
+		}
+	}
+	library.ProviderOrder = order
+	if err := bootstrap.SaveModelLibrary(library); err != nil {
+		return fmt.Errorf("保存模型库失败: %w", err)
+	}
+
+	// 删除未被引用的 provider 不改变任何在用模型，客户端无需重建。
+	h.cfg = candidate
+	h.emitEvent(Event{
+		Time: time.Now(), Category: "SYSTEM", Level: "info",
+		Summary: fmt.Sprintf("Provider 已删除：%s", provider),
+	})
+	return nil
+}
+
+func (h *Host) providerReferencesLocked(provider string) []string {
+	var refs []string
+	if h.cfg.Provider == provider {
+		refs = append(refs, "default")
+	}
+	for role, rc := range h.cfg.Roles {
+		if rc.Provider == provider {
+			refs = append(refs, role)
+		}
+		for i, fallback := range rc.Fallbacks {
+			if fallback.Provider == provider {
+				refs = append(refs, fmt.Sprintf("%s fallback[%d]", role, i))
+			}
+		}
+	}
+	sort.Strings(refs)
+	return refs
+}
+
 func (h *Host) modelReferencesLocked(provider, model string) []string {
 	var refs []string
 	if h.cfg.Provider == provider && h.cfg.ModelName == model {
